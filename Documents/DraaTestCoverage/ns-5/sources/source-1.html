@@ -1,0 +1,345 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > AttackSystem</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">survivor.combat</a>
+</div>
+
+<h1>Coverage Summary for Class: AttackSystem (survivor.combat)</h1>
+
+<table class="coverageStats">
+
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">AttackSystem</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (4/4)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    40.5%
+  </span>
+  <span class="absValue">
+    (17/42)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    37%
+  </span>
+  <span class="absValue">
+    (20/54)
+  </span>
+</td>
+</tr>
+  <tr>
+    <td class="name">AttackSystem$EnemyView</td>
+  </tr>
+  <tr>
+    <td class="name">AttackSystem$Hit</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (2/2)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (2/2)
+  </span>
+</td>
+  </tr>
+  <tr>
+    <td class="name">AttackSystem$PlayerView</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/4)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/4)
+  </span>
+</td>
+  </tr>
+<tr>
+  <td class="name"><strong>Total</strong></td>
+<td class="coverageStat">
+  <span class="percent">
+    60%
+  </span>
+  <span class="absValue">
+    (6/10)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    40.5%
+  </span>
+  <span class="absValue">
+    (17/42)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    36.7%
+  </span>
+  <span class="absValue">
+    (22/60)
+  </span>
+</td>
+</tr>
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode"><b class="fc">&nbsp;package survivor.combat;</b>
+&nbsp;
+&nbsp;import survivor.shared.AttackStyle;
+&nbsp;import java.util.*;
+&nbsp;import java.util.SplittableRandom;
+&nbsp;
+&nbsp;/**
+&nbsp; * @author John Draa
+&nbsp; */
+&nbsp;
+<b class="fc">&nbsp;public final class AttackSystem {</b>
+&nbsp;    private AttackSystem() {}
+&nbsp;
+&nbsp;    // tune these as needed
+&nbsp;    private static final double BASE_AOE_APS       = 1.2;
+&nbsp;    private static final double BASE_AOE_R_TILES   = 2.0;
+&nbsp;    private static final double BASE_AOE_DAMAGE    = 7.0;
+&nbsp;
+&nbsp;    private static final double BASE_CONE_APS      = 1.6;
+&nbsp;    private static final double BASE_CONE_LEN_T    = 2.5;
+&nbsp;    private static final double BASE_CONE_ARC_DEG  = 70.0;
+&nbsp;    private static final double BASE_CONE_DAMAGE   = 12.0;
+&nbsp;
+&nbsp;    // Orbit weapon constants
+&nbsp;    private static final double BASE_ORBIT_RADIUS_TILES = 1.5;  // Orbit radius in tiles
+&nbsp;    private static final double BASE_ORBIT_DAMAGE = 8.0;
+&nbsp;    private static final double BASE_ORBIT_ROTATION_SPEED = 3.0;  // Radians per second
+&nbsp;    private static final int ORBIT_HIT_COOLDOWN_MS = 300;  // Cooldown between hits on same enemy
+&nbsp;
+<b class="fc">&nbsp;    private static final SplittableRandom RNG = new SplittableRandom();</b>
+&nbsp;
+&nbsp;    public static List&lt;Hit&gt; resolveAuto(
+&nbsp;            Collection&lt;? extends PlayerView&gt; players,
+&nbsp;            List&lt;? extends EnemyView&gt; enemies,
+&nbsp;            int tilePx
+&nbsp;    ) {
+<b class="fc">&nbsp;        long now = System.currentTimeMillis();</b>
+<b class="fc">&nbsp;        List&lt;Hit&gt; out = new ArrayList&lt;&gt;();</b>
+&nbsp;
+<b class="fc">&nbsp;        for (var p : players)</b>
+&nbsp;        {
+<b class="fc">&nbsp;            if (p.isDead()) continue;</b>
+&nbsp;
+<b class="fc">&nbsp;            var style = p.effectiveStyle();</b>
+<b class="pc">&nbsp;            switch (style)</b>
+&nbsp;            {
+&nbsp;                case AOE -&gt;
+&nbsp;                {
+<b class="fc">&nbsp;                    int iv = Formulas.intervalMs(p.stats(), BASE_AOE_APS);</b>
+<b class="fc">&nbsp;                    if (now - p.lastAttackAt() &lt; iv) continue;</b>
+<b class="fc">&nbsp;                    p.setLastAttackAt(now);</b>
+&nbsp;
+<b class="fc">&nbsp;                    double rPx = BASE_AOE_R_TILES * tilePx * Formulas.rangeFactor(p.stats());</b>
+<b class="fc">&nbsp;                    int dmg = (int)Math.round(Formulas.damage(p.stats(), BASE_AOE_DAMAGE));</b>
+<b class="fc">&nbsp;                    if (Formulas.crit(p.stats(), RNG)) dmg = (int)Math.round(dmg * 1.5);</b>
+&nbsp;
+<b class="fc">&nbsp;                    for (var e : enemies)</b>
+&nbsp;                    {
+<b class="fc">&nbsp;                        if (e.isDead()) continue;</b>
+<b class="fc">&nbsp;                        if (dist(p.pos(), e.pos()) &lt;= rPx)</b>
+&nbsp;                        {
+<b class="fc">&nbsp;                            out.add(new Hit(p.id(), e.id(), dmg, true));</b>
+&nbsp;                        }
+&nbsp;                    }
+&nbsp;                }
+&nbsp;                case CONE -&gt;
+&nbsp;                {
+<b class="nc">&nbsp;                    int iv = Formulas.intervalMs(p.stats(), BASE_CONE_APS);</b>
+<b class="nc">&nbsp;                    if (now - p.lastAttackAt() &lt; iv) continue;</b>
+<b class="nc">&nbsp;                    p.setLastAttackAt(now);</b>
+&nbsp;
+<b class="nc">&nbsp;                    Vec2 aim = p.aimDir(); // movement dir if moving, else last non-zero</b>
+<b class="nc">&nbsp;                    double lenPx = BASE_CONE_LEN_T * tilePx * Formulas.rangeFactor(p.stats());</b>
+<b class="nc">&nbsp;                    double halfArc = Math.toRadians(BASE_CONE_ARC_DEG)</b>
+<b class="nc">&nbsp;                            * (0.9 + 0.005 * p.stats().range()) * 0.5;</b>
+&nbsp;
+<b class="nc">&nbsp;                    int dmg = (int)Math.round(Formulas.damage(p.stats(), BASE_CONE_DAMAGE));</b>
+<b class="nc">&nbsp;                    if (Formulas.crit(p.stats(), RNG)) dmg = (int)Math.round(dmg * 1.5);</b>
+&nbsp;
+<b class="nc">&nbsp;                    for (var e : enemies)</b>
+&nbsp;                    {
+<b class="nc">&nbsp;                        if (e.isDead()) continue;</b>
+<b class="nc">&nbsp;                        if (Cone.contains(p.pos(), aim, e.pos(), lenPx, halfArc))</b>
+&nbsp;                        {
+<b class="nc">&nbsp;                            out.add(new Hit(p.id(), e.id(), dmg, true));</b>
+&nbsp;                        }
+&nbsp;                    }
+&nbsp;                }
+&nbsp;                case ORBIT -&gt;
+&nbsp;                {
+&nbsp;                    // Update orbit angle based on rotation speed
+&nbsp;                    // Rotation speed scales with attack speed stat
+<b class="nc">&nbsp;                    double rotationSpeed = BASE_ORBIT_ROTATION_SPEED * (0.8 + 0.01 * p.stats().attackSpeed());</b>
+<b class="nc">&nbsp;                    double deltaTime = 1.0 / 20.0;  // Assuming 20 ticks per second</b>
+<b class="nc">&nbsp;                    double newAngle = p.orbitAngle() + rotationSpeed * deltaTime;</b>
+&nbsp;                    // Keep angle in [0, 2π) range
+<b class="nc">&nbsp;                    if (newAngle &gt;= 2 * Math.PI) newAngle -= 2 * Math.PI;</b>
+<b class="nc">&nbsp;                    p.setOrbitAngle(newAngle);</b>
+&nbsp;
+&nbsp;                    // Calculate orb position
+<b class="nc">&nbsp;                    double orbitRadiusPx = BASE_ORBIT_RADIUS_TILES * tilePx * Formulas.rangeFactor(p.stats());</b>
+<b class="nc">&nbsp;                    Vec2 orbPos = new Vec2(</b>
+<b class="nc">&nbsp;                            p.pos().x() + Math.cos(newAngle) * orbitRadiusPx,</b>
+<b class="nc">&nbsp;                            p.pos().y() + Math.sin(newAngle) * orbitRadiusPx</b>
+&nbsp;                    );
+&nbsp;
+&nbsp;                    // Orb hitbox radius (small orb)
+<b class="nc">&nbsp;                    double orbRadiusPx = 8.0;</b>
+&nbsp;
+&nbsp;                    // Check collision with enemies
+<b class="nc">&nbsp;                    for (var e : enemies)</b>
+&nbsp;                    {
+<b class="nc">&nbsp;                        if (e.isDead()) continue;</b>
+&nbsp;
+&nbsp;                        // Check if enemy is in contact with orb
+<b class="nc">&nbsp;                        double distToOrb = dist(orbPos, e.pos());</b>
+<b class="nc">&nbsp;                        double contactDist = orbRadiusPx + e.radiusPx();</b>
+&nbsp;
+<b class="nc">&nbsp;                        if (distToOrb &lt;= contactDist)</b>
+&nbsp;                        {
+&nbsp;                            // Check cooldown for this specific enemy
+<b class="nc">&nbsp;                            long lastHit = p.getOrbitLastHitTime(e.id());</b>
+<b class="nc">&nbsp;                            if (now - lastHit &gt;= ORBIT_HIT_COOLDOWN_MS)</b>
+&nbsp;                            {
+<b class="nc">&nbsp;                                int dmg = (int)Math.round(Formulas.damage(p.stats(), BASE_ORBIT_DAMAGE));</b>
+<b class="nc">&nbsp;                                if (Formulas.crit(p.stats(), RNG)) dmg = (int)Math.round(dmg * 1.5);</b>
+&nbsp;
+<b class="nc">&nbsp;                                out.add(new Hit(p.id(), e.id(), dmg, true));</b>
+<b class="nc">&nbsp;                                p.setOrbitLastHitTime(e.id(), now);</b>
+&nbsp;                            }
+&nbsp;                        }
+&nbsp;                    }
+&nbsp;                }
+&nbsp;                case PROJECTILE -&gt; {
+&nbsp;                    // TODO Not core scope right now for demo 3. Add later.
+&nbsp;                }
+&nbsp;            }
+&nbsp;        }
+<b class="fc">&nbsp;        return out;</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    private static double dist(Vec2 a, Vec2 b) { return Math.hypot(a.x() - b.x(), a.y() - b.y()); }</b>
+&nbsp;
+&nbsp;    // Minimal views to decouple AttackSystem from your concrete PlayerState/EnemyState
+&nbsp;    public interface PlayerView
+&nbsp;    {
+&nbsp;        int id();
+&nbsp;        Vec2 pos();
+&nbsp;        Stats stats();
+&nbsp;        AttackStyle effectiveStyle();
+&nbsp;        long lastAttackAt();
+&nbsp;        void setLastAttackAt(long t);
+&nbsp;        Vec2 aimDir();
+&nbsp;        boolean isDead();
+&nbsp;
+&nbsp;        // Orbit weapon methods (default implementations for backward compatibility)
+<b class="nc">&nbsp;        default double orbitAngle() { return 0.0; }</b>
+<b class="nc">&nbsp;        default void setOrbitAngle(double angle) { /* no-op for non-orbit players */ }</b>
+<b class="nc">&nbsp;        default long getOrbitLastHitTime(int enemyId) { return 0L; }</b>
+<b class="nc">&nbsp;        default void setOrbitLastHitTime(int enemyId, long time) { /* no-op for non-orbit players */ }</b>
+&nbsp;    }
+&nbsp;    public interface EnemyView
+&nbsp;    {
+&nbsp;        int id();
+&nbsp;        Vec2 pos();
+&nbsp;        Stats stats();
+&nbsp;        boolean isDead();
+&nbsp;        double radiusPx();  // Added for orbit collision detection
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    public record Hit(int attackerId, int targetId, int damage, boolean playerToEnemy) {}</b>
+&nbsp;}
+&nbsp;
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-12-08 17:10</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,219 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > CharacterController</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">survivor.characters</a>
+</div>
+
+<h1>Coverage Summary for Class: CharacterController (survivor.characters)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">CharacterController</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    66.7%
+  </span>
+  <span class="absValue">
+    (4/6)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    60%
+  </span>
+  <span class="absValue">
+    (6/10)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    71.4%
+  </span>
+  <span class="absValue">
+    (25/35)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package survivor.characters;
+&nbsp;
+&nbsp;import lombok.*;
+&nbsp;import org.springframework.http.ResponseEntity;
+&nbsp;import org.springframework.web.bind.annotation.*;
+&nbsp;import survivor.accounts.AccountRepository;
+&nbsp;import survivor.exceptions.NotFoundException;
+&nbsp;
+&nbsp;import java.util.*;
+&nbsp;/**
+&nbsp; * @author John Draa
+&nbsp; */
+&nbsp;
+&nbsp;@RestController
+&nbsp;@RequiredArgsConstructor
+&nbsp;public class CharacterController
+&nbsp;{
+&nbsp;
+&nbsp;    private final AccountRepository accountRepository;
+&nbsp;    private final GameCharacterRepository characters;
+&nbsp;    private final UserCharacterUnlockRepository unlockRepo;
+&nbsp;    private final CharacterPurchaseService purchaseSvc;
+&nbsp;
+<b class="fc">&nbsp;    private static final Comparator&lt;GameCharacter&gt; SHOP_ORDER =</b>
+<b class="fc">&nbsp;            Comparator.comparingInt(GameCharacter::getCost)</b>
+<b class="fc">&nbsp;                    .thenComparingInt(GameCharacter::getId);</b>
+&nbsp;
+&nbsp;    //-----Full catalog sorted by id-----
+&nbsp;    @GetMapping(&quot;/characters&quot;)
+&nbsp;    public ResponseEntity&lt;?&gt; listCharacters()
+&nbsp;    {
+<b class="nc">&nbsp;        var dto = characters.findAllByOrderByIdAsc().stream()</b>
+<b class="nc">&nbsp;                .map(CharacterResponseDTO::from)</b>
+<b class="nc">&nbsp;                .toList();</b>
+<b class="nc">&nbsp;        return ResponseEntity.ok(dto);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    //-----Shop (unowned) sorted by cost, then id-----
+&nbsp;    @GetMapping(&quot;/accounts/{accountId}/shop/characters&quot;)
+&nbsp;    public ResponseEntity&lt;?&gt; listShopCharactersForAccount(@PathVariable Integer accountId)
+&nbsp;    {
+<b class="pc">&nbsp;        if (!accountRepository.existsById(accountId))</b>
+&nbsp;        {
+<b class="nc">&nbsp;            throw new NotFoundException(&quot;Account not found&quot;);</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        var ownedIds = unlockRepo.findAllByAccount_Id(accountId).stream()</b>
+<b class="fc">&nbsp;                .map(u -&gt; u.getCharacter().getId())</b>
+<b class="fc">&nbsp;                .collect(java.util.stream.Collectors.toSet());</b>
+&nbsp;
+<b class="fc">&nbsp;        var purchasable = characters.findAll().stream()</b>
+<b class="fc">&nbsp;                .filter(c -&gt; c.getCost() &gt; 0)</b>
+<b class="pc">&nbsp;                .filter(c -&gt; !ownedIds.contains(c.getId()))</b>
+<b class="fc">&nbsp;                .sorted(SHOP_ORDER)</b>
+<b class="fc">&nbsp;                .map(CharacterResponseDTO::from)</b>
+<b class="fc">&nbsp;                .toList();</b>
+&nbsp;
+<b class="fc">&nbsp;        return ResponseEntity.ok(purchasable);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    //-----Get one-----
+&nbsp;    @GetMapping(&quot;/characters/{id}&quot;)
+&nbsp;    public ResponseEntity&lt;?&gt; getCharacter(@PathVariable Integer id)
+&nbsp;    {
+<b class="nc">&nbsp;        var c = characters.findById(id)</b>
+<b class="nc">&nbsp;                .orElseThrow(() -&gt; new NotFoundException(&quot;Character not found&quot;));</b>
+<b class="nc">&nbsp;        return ResponseEntity.ok(CharacterResponseDTO.from(c));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    //-----Owned list (sorted same as shop)-----
+&nbsp;    @GetMapping(&quot;/accounts/{accountId}/characters&quot;)
+&nbsp;    public ResponseEntity&lt;?&gt; owned(@PathVariable Integer accountId)
+&nbsp;    {
+<b class="pc">&nbsp;        if (!accountRepository.existsById(accountId))</b>
+&nbsp;        {
+<b class="nc">&nbsp;            throw new NotFoundException(&quot;Account not found&quot;);</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        var owned = unlockRepo.findAllByAccount_Id(accountId).stream()</b>
+<b class="fc">&nbsp;                .map(UserCharacterUnlock::getCharacter)</b>
+<b class="fc">&nbsp;                .sorted(SHOP_ORDER)</b>
+<b class="fc">&nbsp;                .map(OwnedCharacterDTO::from)</b>
+<b class="fc">&nbsp;                .toList();</b>
+&nbsp;
+<b class="fc">&nbsp;        return ResponseEntity.ok(owned);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    //-----Purchase-----
+&nbsp;    @PostMapping(&quot;/accounts/{accountId}/characters/{characterId}/purchase&quot;)
+&nbsp;    public ResponseEntity&lt;?&gt; purchase(@PathVariable Integer accountId,
+&nbsp;                                      @PathVariable Integer characterId)
+&nbsp;    {
+<b class="pc">&nbsp;        if (!accountRepository.existsById(accountId))</b>
+&nbsp;        {
+<b class="nc">&nbsp;            throw new NotFoundException(&quot;Account not found&quot;);</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        var res = purchaseSvc.purchase(accountId, characterId);</b>
+<b class="fc">&nbsp;        return ResponseEntity.ok(</b>
+<b class="fc">&nbsp;                PurchaseResultDTO.purchased(res.characterId(), res.newCoinBalance())</b>
+&nbsp;        );
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-12-08 17:10</div>
+</div>
+</body>
+</html>

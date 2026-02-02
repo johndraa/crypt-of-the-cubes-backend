@@ -1,0 +1,233 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > MatchRuntime</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">survivor.runtime</a>
+</div>
+
+<h1>Coverage Summary for Class: MatchRuntime (survivor.runtime)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">MatchRuntime</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    86.7%
+  </span>
+  <span class="absValue">
+    (13/15)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    87.5%
+  </span>
+  <span class="absValue">
+    (7/8)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    95%
+  </span>
+  <span class="absValue">
+    (38/40)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package survivor.runtime;
+&nbsp;
+&nbsp;import survivor.combat.*;
+&nbsp;import survivor.model.EnemyState;
+&nbsp;import survivor.model.PlayerState;
+&nbsp;
+&nbsp;import java.util.*;
+&nbsp;import java.util.concurrent.ConcurrentHashMap;
+&nbsp;
+&nbsp;/**
+&nbsp; * @author John Draa
+&nbsp; */
+&nbsp;
+&nbsp;public class MatchRuntime {
+&nbsp;    private static final int TILE_PX = 24;
+&nbsp;    private static final double DT = 1.0 / 20.0;
+&nbsp;
+&nbsp;    private final long id;
+&nbsp;    private final int R_LIGHT, R_WAKE, R_SLEEP;
+&nbsp;
+<b class="fc">&nbsp;    private final Map&lt;Integer, PlayerState&gt; players = new ConcurrentHashMap&lt;&gt;();</b>
+<b class="fc">&nbsp;    private final List&lt;EnemyState&gt; enemies = Collections.synchronizedList(new ArrayList&lt;&gt;());</b>
+&nbsp;
+&nbsp;    // Per-match world-level / wave manager (handles spawning and scaling)
+<b class="fc">&nbsp;    private final WorldLevelManager worldLevelManager = new WorldLevelManager();</b>
+&nbsp;
+<b class="fc">&nbsp;    private boolean started = false, ended = false;</b>
+&nbsp;    private long startTime;
+&nbsp;
+<b class="fc">&nbsp;    private int enemySeq = 1000;                 // simple id generator for enemies</b>
+<b class="fc">&nbsp;    private int nextEnemyId() { return enemySeq++; }</b>
+&nbsp;
+&nbsp;    public MatchRuntime(long id, int light, int wake, int sleep)
+<b class="fc">&nbsp;    {</b>
+<b class="fc">&nbsp;        this.id = id; this.R_LIGHT = light; this.R_WAKE = wake; this.R_SLEEP = sleep;</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    public long id() { return id; }</b>
+<b class="fc">&nbsp;    public Map&lt;Integer, PlayerState&gt; getPlayers() { return players; }</b>
+<b class="nc">&nbsp;    public long getStartTime() { return startTime; }</b>
+&nbsp;
+<b class="fc">&nbsp;    public boolean isStarted() { return started; }</b>
+<b class="fc">&nbsp;    public boolean isEnded() { return ended; }</b>
+&nbsp;
+&nbsp;    /** Expose current world level for websocket snapshots / clients. */
+&nbsp;    public int getCurrentWorldLevel() {
+<b class="fc">&nbsp;        return worldLevelManager.getCurrentWorldLevel();</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    public void start()
+&nbsp;    {
+<b class="fc">&nbsp;        started = true;</b>
+<b class="fc">&nbsp;        startTime = System.currentTimeMillis();</b>
+&nbsp;
+&nbsp;        // Start world level 1 and spawn the first wave.
+&nbsp;        // Enemies spawn inactive; fog-of-war still controls when they wake up.
+<b class="fc">&nbsp;        worldLevelManager.startFirstWave(enemies, players.values(), this::nextEnemyId);</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    public void stop()  { ended = true; }</b>
+&nbsp;
+<b class="fc">&nbsp;    public void addPlayer(PlayerState p) { players.put(p.id(), p); }</b>
+<b class="nc">&nbsp;    public void removePlayer(int accountId) { players.remove(accountId); }</b>
+<b class="fc">&nbsp;    public void addEnemy(EnemyState e) { enemies.add(e); }</b>
+&nbsp;
+&nbsp;    public java.util.Optional&lt;survivor.model.PlayerState&gt; player(int accountId)
+&nbsp;    {
+<b class="fc">&nbsp;        return java.util.Optional.ofNullable(players.get(accountId));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    public MatchDelta tick()
+&nbsp;    {
+<b class="pc">&nbsp;        if (!started || ended) return MatchDelta.empty();</b>
+&nbsp;
+<b class="fc">&nbsp;        Physics.integrate(players.values(), DT);</b>
+<b class="fc">&nbsp;        Physics.integrateEnemies(enemies, DT);</b>
+&nbsp;
+<b class="fc">&nbsp;        EnemyAiSystem.gateActivity(</b>
+<b class="fc">&nbsp;                enemies, players.values(),</b>
+&nbsp;                R_WAKE * (double)TILE_PX, R_SLEEP * (double)TILE_PX
+&nbsp;        );
+&nbsp;
+<b class="fc">&nbsp;        var eHits = EnemyAiSystem.tick(</b>
+<b class="fc">&nbsp;                enemies, players.values(),</b>
+&nbsp;                R_LIGHT * (double)TILE_PX, TILE_PX
+&nbsp;        );
+&nbsp;
+<b class="fc">&nbsp;        var pHits = AttackSystem.resolveAuto(players.values(), enemies, TILE_PX);</b>
+&nbsp;
+<b class="fc">&nbsp;        var events = CombatResolve.apply(pHits, eHits, players, enemies);</b>
+&nbsp;
+&nbsp;        // Check for match end condition (&lt;1 players alive - all eliminated)
+&nbsp;        // TODO change to &lt;=1 players alive for production
+<b class="fc">&nbsp;        long alivePlayers = players.values().stream().filter(p -&gt; !p.isDead()).count();</b>
+<b class="fc">&nbsp;        boolean shouldEnd = alivePlayers &lt; 1;</b>
+&nbsp;
+&nbsp;        // If match should end, mark runtime as ended immediately
+&nbsp;        // This ensures runtime state is consistent with the delta
+<b class="fc">&nbsp;        if (shouldEnd) {</b>
+<b class="fc">&nbsp;            ended = true;</b>
+&nbsp;        }
+&nbsp;
+&nbsp;        // Update world-level progression based on enemy deaths, and spawn the
+&nbsp;        // next wave if the current one is cleared (and the match is not ending).
+<b class="fc">&nbsp;        worldLevelManager.handleDeaths(</b>
+<b class="fc">&nbsp;                events.deaths(),</b>
+&nbsp;                enemies,
+<b class="fc">&nbsp;                players.values(),</b>
+&nbsp;                this::nextEnemyId,
+&nbsp;                shouldEnd
+&nbsp;        );
+&nbsp;
+<b class="fc">&nbsp;        var snaps  = SnapshotBuilder.build(players.values(), enemies, R_LIGHT * (double)TILE_PX);</b>
+&nbsp;
+<b class="fc">&nbsp;        return new MatchDelta(events, snaps, shouldEnd);</b>
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-12-08 17:10</div>
+</div>
+</body>
+</html>

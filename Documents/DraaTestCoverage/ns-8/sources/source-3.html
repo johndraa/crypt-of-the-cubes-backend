@@ -1,0 +1,246 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > MatchController</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">survivor.match</a>
+</div>
+
+<h1>Coverage Summary for Class: MatchController (survivor.match)</h1>
+
+<table class="coverageStats">
+
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">MatchController</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (6/6)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    75%
+  </span>
+  <span class="absValue">
+    (3/4)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (26/26)
+  </span>
+</td>
+</tr>
+  <tr>
+    <td class="name">MatchController$EndReq</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (2/2)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (2/2)
+  </span>
+</td>
+  </tr>
+<tr>
+  <td class="name"><strong>Total</strong></td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (8/8)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    75%
+  </span>
+  <span class="absValue">
+    (3/4)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (28/28)
+  </span>
+</td>
+</tr>
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode"><b class="fc">&nbsp;package survivor.match;</b>
+&nbsp;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import org.springframework.web.bind.annotation.*;
+&nbsp;import survivor.exceptions.NotFoundException;
+&nbsp;import survivor.runtime.MatchRuntimeRegistry;
+&nbsp;import survivor.ws.dto.LobbyPlayer;
+&nbsp;import survivor.ws.dto.ParticipantResult;
+&nbsp;
+&nbsp;import java.util.List;
+&nbsp;import java.util.Map;
+&nbsp;
+&nbsp;@RestController
+&nbsp;@CrossOrigin(origins = &quot;*&quot;)
+&nbsp;@RequestMapping(&quot;/matches&quot;) @RequiredArgsConstructor
+&nbsp;public class MatchController
+&nbsp;{
+&nbsp;    private final MatchRepository matches;
+&nbsp;    private final MatchStore store;
+&nbsp;    private final MatchRuntimeRegistry registry;
+&nbsp;
+&nbsp;    @PostMapping(&quot;/create&quot;)
+<b class="fc">&nbsp;    public Match create() { return store.createLobby(); }</b>
+&nbsp;
+&nbsp;    // --- Join by join code -&gt; resolve matchId then store.join ---
+&nbsp;    @PostMapping(&quot;/join/{joinCode}/{accountId}&quot;)
+&nbsp;    public Map&lt;String,Object&gt; join(@PathVariable String joinCode, @PathVariable int accountId)
+&nbsp;    {
+<b class="fc">&nbsp;        var match = matches.findByJoinCode(joinCode)</b>
+<b class="fc">&nbsp;                .orElseThrow(() -&gt; new NotFoundException(&quot;match not found&quot;));</b>
+<b class="fc">&nbsp;        store.join(match.getId(), accountId);</b>
+<b class="fc">&nbsp;        return Map.of(&quot;matchId&quot;, match.getId(), &quot;joinCode&quot;, match.getJoinCode());</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    // NOTE: Leave, Ready, Character Lock, and Start are now handled via WebSocket
+&nbsp;    // See LobbyController.java for real-time lobby operations
+&nbsp;
+&nbsp;    // --- End (sets ended_at; optional winner) ---
+<b class="fc">&nbsp;    public record EndReq(Integer winnerAccountId) {}</b>
+&nbsp;    @PostMapping(&quot;/{matchId}/end&quot;)
+&nbsp;    public Map&lt;String,Object&gt; end(@PathVariable long matchId, @RequestBody(required = false) EndReq req)
+&nbsp;    {
+<b class="pc">&nbsp;        store.markEnded(matchId, req == null ? null : req.winnerAccountId(), java.time.Instant.now());</b>
+<b class="fc">&nbsp;        return Map.of(&quot;ok&quot;, true);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    // --- Stop (stops runtime and removes from registry) ---
+&nbsp;    @PostMapping(&quot;/{matchId}/stop&quot;)
+&nbsp;    public Map&lt;String,Object&gt; stop(@PathVariable long matchId)
+&nbsp;    {
+<b class="fc">&nbsp;        System.out.println(&quot;=== STOP CALLED: matchId=&quot; + matchId + &quot;, timestamp=&quot; + System.currentTimeMillis() + &quot; ===&quot;);</b>
+&nbsp;        
+<b class="fc">&nbsp;        var runtimeOpt = registry.get(matchId);</b>
+&nbsp;        
+<b class="fc">&nbsp;        if (runtimeOpt.isEmpty()) {</b>
+<b class="fc">&nbsp;            System.out.println(&quot;  -&gt; Runtime not found in registry&quot;);</b>
+&nbsp;            // Runtime not found - might already be stopped or never existed
+<b class="fc">&nbsp;            return Map.of(&quot;ok&quot;, false, &quot;message&quot;, &quot;Match runtime not found in registry (may already be stopped)&quot;);</b>
+&nbsp;        }
+&nbsp;        
+<b class="fc">&nbsp;        var rt = runtimeOpt.get();</b>
+<b class="fc">&nbsp;        System.out.println(&quot;  -&gt; Found runtime: started=&quot; + rt.isStarted() + &quot;, ended=&quot; + rt.isEnded());</b>
+&nbsp;        
+&nbsp;        // Stop the runtime and remove from registry immediately
+<b class="fc">&nbsp;        rt.stop();  // Mark runtime as ended internally</b>
+<b class="fc">&nbsp;        System.out.println(&quot;  -&gt; Called rt.stop(), ended=&quot; + rt.isEnded());</b>
+&nbsp;        
+<b class="fc">&nbsp;        registry.end(matchId);  // Remove from active registry - THIS STOPS THE TICKS!</b>
+&nbsp;        
+&nbsp;        // Verify removal
+<b class="fc">&nbsp;        var check = registry.get(matchId);</b>
+<b class="fc">&nbsp;        System.out.println(&quot;  -&gt; After removal, registry.get() returns: &quot; + check.isEmpty());</b>
+<b class="fc">&nbsp;        System.out.println(&quot;  -&gt; Registry size: &quot; + registry.active().size());</b>
+&nbsp;        
+&nbsp;        // Mark as ended in database
+<b class="fc">&nbsp;        store.markEnded(matchId, null, java.time.Instant.now());</b>
+&nbsp;        
+<b class="fc">&nbsp;        System.out.println(&quot;=== STOP COMPLETE ===&quot;);</b>
+&nbsp;        
+<b class="fc">&nbsp;        return Map.of(&quot;ok&quot;, true, &quot;message&quot;, &quot;Match runtime stopped and removed from registry&quot;);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @PostMapping(&quot;/{matchId}/results&quot;)
+&nbsp;    public Map&lt;String,Object&gt; results(@PathVariable long matchId, @RequestBody List&lt;ParticipantResult&gt; results)
+&nbsp;    {
+<b class="fc">&nbsp;        store.writeResults(matchId, results);</b>
+<b class="fc">&nbsp;        return Map.of(&quot;ok&quot;, true);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    // --- Lobby snapshot ---
+&nbsp;    @GetMapping(&quot;/{matchId}/lobby&quot;)
+&nbsp;    public List&lt;LobbyPlayer&gt; lobby(@PathVariable long matchId)
+&nbsp;    {
+<b class="fc">&nbsp;        return store.snapshot(matchId);</b>
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-12-08 17:10</div>
+</div>
+</body>
+</html>

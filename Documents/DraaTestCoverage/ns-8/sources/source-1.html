@@ -1,0 +1,351 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > JpaMatchStore</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">survivor.match</a>
+</div>
+
+<h1>Coverage Summary for Class: JpaMatchStore (survivor.match)</h1>
+
+<table class="coverageStats">
+
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">JpaMatchStore</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (13/13)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    59.3%
+  </span>
+  <span class="absValue">
+    (32/54)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    89%
+  </span>
+  <span class="absValue">
+    (89/100)
+  </span>
+</td>
+</tr>
+  <tr>
+    <td class="name">JpaMatchStore$$SpringCGLIB$$0</td>
+  </tr>
+<tr>
+  <td class="name"><strong>Total</strong></td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (13/13)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    59.3%
+  </span>
+  <span class="absValue">
+    (32/54)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    89%
+  </span>
+  <span class="absValue">
+    (89/100)
+  </span>
+</td>
+</tr>
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package survivor.match;
+&nbsp;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import org.springframework.stereotype.Component;
+&nbsp;import survivor.characters.GameCharacterRepository;
+&nbsp;import survivor.ws.dto.LobbyPlayer;
+&nbsp;import survivor.ws.dto.ParticipantResult;
+&nbsp;
+&nbsp;import java.time.Instant;
+&nbsp;import java.util.List;
+&nbsp;import java.util.concurrent.ThreadLocalRandom;
+&nbsp;
+&nbsp;@Component
+&nbsp;@RequiredArgsConstructor
+&nbsp;public class JpaMatchStore implements MatchStore
+&nbsp;{
+&nbsp;
+&nbsp;    private final MatchRepository matches;
+&nbsp;    private final MatchParticipantRepository parts;
+&nbsp;    private final GameCharacterRepository characters;
+&nbsp;    private final survivor.progress.UserProgressRepository progressRepo;
+&nbsp;    private final survivor.characters.UserCharacterUnlockRepository unlockRepo;
+&nbsp;
+&nbsp;    private static final String CODE_CHARS = &quot;ABCDEFGHJKLMNPQRSTUVWXYZ23456789&quot;;
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public Match createLobby()
+&nbsp;    {
+<b class="fc">&nbsp;        String code = genCode();</b>
+<b class="fc">&nbsp;        var m = Match.builder().status(MatchStatus.LOBBY).joinCode(code).build();</b>
+<b class="fc">&nbsp;        return matches.save(m);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    private String genCode()
+&nbsp;    {
+<b class="fc">&nbsp;        ThreadLocalRandom r = ThreadLocalRandom.current();</b>
+<b class="fc">&nbsp;        StringBuilder s = new StringBuilder(6);</b>
+<b class="fc">&nbsp;        for (int i = 0; i &lt; 6; i++) s.append(CODE_CHARS.charAt(r.nextInt(CODE_CHARS.length())));</b>
+<b class="fc">&nbsp;        return s.toString();</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public void markActive(long id, Instant t)
+&nbsp;    {
+<b class="fc">&nbsp;        var m = matches.findById(id).orElseThrow();</b>
+<b class="fc">&nbsp;        m.setStatus(MatchStatus.ACTIVE);</b>
+<b class="fc">&nbsp;        m.setStartedAt(t);</b>
+<b class="fc">&nbsp;        matches.save(m);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public void markEnded(long id, Integer winner, Instant t)
+&nbsp;    {
+<b class="fc">&nbsp;        var m = matches.findById(id).orElseThrow();</b>
+<b class="fc">&nbsp;        m.setStatus(MatchStatus.ENDED);</b>
+<b class="fc">&nbsp;        m.setWinnerAccountId(winner);</b>
+<b class="fc">&nbsp;        m.setEndedAt(t);</b>
+<b class="fc">&nbsp;        matches.save(m);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public void join(long mid, int aid)
+&nbsp;    {
+<b class="fc">&nbsp;        if (parts.existsByMatchIdAndAccountId(mid, aid)) return;</b>
+&nbsp;        // Enforce max 4 active participants (exclude those who have left)
+<b class="fc">&nbsp;        long activeCount = parts.findByMatchId(mid).stream()</b>
+<b class="pc">&nbsp;                .filter(p -&gt; p.getLeftAt() == null)</b>
+<b class="fc">&nbsp;                .count();</b>
+<b class="fc">&nbsp;        if (activeCount &gt;= 4) return;</b>
+<b class="fc">&nbsp;        var m = matches.findById(mid).orElseThrow();</b>
+&nbsp;        
+&nbsp;        // Default everyone to WANDERER (free character)
+<b class="fc">&nbsp;        var wanderer = characters.findByCodeIgnoreCase(&quot;WANDERER&quot;).orElse(null);</b>
+&nbsp;        
+<b class="fc">&nbsp;        parts.save(MatchParticipant.builder()</b>
+<b class="fc">&nbsp;                .match(m)</b>
+<b class="fc">&nbsp;                .accountId(aid)</b>
+<b class="fc">&nbsp;                .joinedAt(Instant.now())</b>
+<b class="fc">&nbsp;                .ready(false)</b>
+<b class="fc">&nbsp;                .selectedCharacterCode(&quot;WANDERER&quot;)</b>
+<b class="pc">&nbsp;                .characterId(wanderer != null ? wanderer.getId() : null)</b>
+<b class="fc">&nbsp;                .build());</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public void leave(long mid, int aid)
+&nbsp;    {
+<b class="fc">&nbsp;        parts.findByMatchId(mid).stream()</b>
+<b class="pc">&nbsp;                .filter(p -&gt; p.getAccountId() == aid)</b>
+<b class="fc">&nbsp;                .forEach(p -&gt; { p.setLeftAt(Instant.now()); parts.save(p); });</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @Override
+&nbsp;    @org.springframework.transaction.annotation.Transactional
+&nbsp;    public void setReady(long mid, int aid, boolean r)
+&nbsp;    {
+<b class="fc">&nbsp;        var participantOpt = parts.findByMatchId(mid).stream()</b>
+<b class="pc">&nbsp;                .filter(p -&gt; p.getAccountId() == aid)</b>
+<b class="pc">&nbsp;                .filter(p -&gt; p.getLeftAt() == null)  // Only update active participants</b>
+<b class="fc">&nbsp;                .findFirst();</b>
+&nbsp;        
+<b class="fc">&nbsp;        if (participantOpt.isPresent()) {</b>
+<b class="fc">&nbsp;            var participant = parts.findById(participantOpt.get().getId()).orElse(null);</b>
+<b class="pc">&nbsp;            if (participant != null) {</b>
+<b class="fc">&nbsp;                participant.setReady(r);</b>
+<b class="fc">&nbsp;                parts.save(participant);</b>
+&nbsp;            }
+&nbsp;        }
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Select character by code (case-insensitive). If code is null/blank, clears selection for this player.
+&nbsp;     * Returns true if selection succeeded/cleared. Returns false if character doesn&#39;t exist or player doesn&#39;t own it.
+&nbsp;     */
+&nbsp;    @Override
+&nbsp;    @org.springframework.transaction.annotation.Transactional
+&nbsp;    public boolean lockCharacter(long mid, int aid, String code)
+&nbsp;    {
+<b class="fc">&nbsp;        final String norm = (code == null) ? null : code.trim();</b>
+&nbsp;        
+&nbsp;        // Find the participant entity
+<b class="fc">&nbsp;        var meOpt = parts.findByMatchId(mid).stream()</b>
+<b class="pc">&nbsp;                .filter(p -&gt; p.getAccountId() == aid)</b>
+<b class="fc">&nbsp;                .findFirst();</b>
+<b class="pc">&nbsp;        if (meOpt.isEmpty()) return false;</b>
+&nbsp;        
+<b class="fc">&nbsp;        var me = parts.findById(meOpt.get().getId()).orElse(null);</b>
+<b class="pc">&nbsp;        if (me == null) return false;</b>
+&nbsp;
+<b class="pc">&nbsp;        if (norm == null || norm.isBlank())</b>
+&nbsp;        {
+<b class="fc">&nbsp;            me.setSelectedCharacterCode(null);</b>
+<b class="fc">&nbsp;            me.setCharacterId(null);</b>
+<b class="fc">&nbsp;            me.setReady(false);</b>
+<b class="fc">&nbsp;            parts.save(me);</b>
+<b class="fc">&nbsp;            return true;</b>
+&nbsp;        }
+&nbsp;
+&nbsp;        // Validate character exists
+<b class="fc">&nbsp;        var gc = characters.findByCodeIgnoreCase(norm).orElse(null);</b>
+<b class="pc">&nbsp;        if (gc == null) return false; // Character doesn&#39;t exist</b>
+&nbsp;        
+&nbsp;        // Special handling for WANDERER - always allowed, no ownership check
+<b class="fc">&nbsp;        if (gc.getCode().equals(&quot;WANDERER&quot;)) {</b>
+&nbsp;            // Check if already selected (early return for efficiency)
+<b class="pc">&nbsp;            if (me.getSelectedCharacterCode() != null </b>
+<b class="nc">&nbsp;                    &amp;&amp; me.getSelectedCharacterCode().equalsIgnoreCase(&quot;WANDERER&quot;)) {</b>
+<b class="nc">&nbsp;                return true; // Already selected - no change needed</b>
+&nbsp;            }
+&nbsp;            // Just set it - WANDERER is always available
+<b class="fc">&nbsp;            me.setSelectedCharacterCode(&quot;WANDERER&quot;);</b>
+<b class="fc">&nbsp;            me.setCharacterId(gc.getId());</b>
+<b class="fc">&nbsp;            me.setReady(false);</b>
+<b class="fc">&nbsp;            parts.save(me);</b>
+<b class="fc">&nbsp;            return true;</b>
+&nbsp;        }
+&nbsp;        
+&nbsp;        // For non-WANDERER characters: check ownership only (no exclusivity)
+&nbsp;        // Check if player owns this character
+<b class="fc">&nbsp;        boolean ownsCharacter = unlockRepo.existsByAccount_IdAndCharacter_Id(aid, gc.getId());</b>
+<b class="pc">&nbsp;        if (!ownsCharacter) return false; // Player doesn&#39;t own this character</b>
+&nbsp;
+&nbsp;        // Check if already selected by this player
+<b class="nc">&nbsp;        boolean alreadySelectedByMe = me.getSelectedCharacterCode() != null </b>
+<b class="nc">&nbsp;                &amp;&amp; me.getSelectedCharacterCode().equalsIgnoreCase(norm);</b>
+<b class="nc">&nbsp;        if (alreadySelectedByMe) {</b>
+<b class="nc">&nbsp;            return true; // Already selected - no change needed</b>
+&nbsp;        }
+&nbsp;
+&nbsp;        // Set the selection - multiple players can select the same character
+<b class="nc">&nbsp;        me.setSelectedCharacterCode(norm);</b>
+<b class="nc">&nbsp;        me.setCharacterId(gc.getId());</b>
+<b class="nc">&nbsp;        me.setReady(false);</b>
+<b class="nc">&nbsp;        parts.save(me);</b>
+<b class="nc">&nbsp;        return true;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public List&lt;LobbyPlayer&gt; snapshot(long mid)
+&nbsp;    {
+<b class="fc">&nbsp;        return parts.findByMatchId(mid).stream()</b>
+<b class="fc">&nbsp;                .filter(p -&gt; p.getLeftAt() == null)</b>
+<b class="fc">&nbsp;                .map(p -&gt; new LobbyPlayer(</b>
+<b class="fc">&nbsp;                        p.getAccountId(),</b>
+<b class="fc">&nbsp;                        p.getSelectedCharacterCode(),</b>
+<b class="fc">&nbsp;                        Boolean.TRUE.equals(p.getReady())))</b>
+<b class="fc">&nbsp;                .toList();</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public void writeResults(long mid, List&lt;ParticipantResult&gt; res)
+&nbsp;    {
+<b class="fc">&nbsp;        var list = parts.findByMatchId(mid);</b>
+<b class="fc">&nbsp;        for (var r : res)</b>
+&nbsp;        {
+<b class="fc">&nbsp;            list.stream()</b>
+<b class="pc">&nbsp;                    .filter(p -&gt; p.getAccountId() == r.accountId())</b>
+<b class="fc">&nbsp;                    .findFirst()</b>
+<b class="fc">&nbsp;                    .ifPresent(p -&gt;</b>
+&nbsp;                    {
+&nbsp;                        // Save to MatchParticipant
+<b class="fc">&nbsp;                        p.setScore(r.score());</b>
+<b class="fc">&nbsp;                        p.setCoinsEarned(r.coins());</b>
+<b class="fc">&nbsp;                        p.setTimeAliveMs(r.timeAliveMs());</b>
+<b class="fc">&nbsp;                        parts.save(p);</b>
+&nbsp;
+&nbsp;                        // Update UserProgress with earned coins and score
+<b class="fc">&nbsp;                        progressRepo.findByAccount_Id(r.accountId())</b>
+<b class="fc">&nbsp;                                .ifPresent(progress -&gt; {</b>
+<b class="fc">&nbsp;                                    progress.setCoins(progress.getCoins() + r.coins());</b>
+<b class="fc">&nbsp;                                    progress.setTotalScore(progress.getTotalScore() + r.score());</b>
+<b class="fc">&nbsp;                                    progressRepo.save(progress);</b>
+&nbsp;                                });
+&nbsp;                    });
+&nbsp;        }
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-12-08 17:10</div>
+</div>
+</body>
+</html>

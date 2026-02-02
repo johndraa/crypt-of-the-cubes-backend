@@ -1,0 +1,342 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > AccountController</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">survivor.accounts</a>
+</div>
+
+<h1>Coverage Summary for Class: AccountController (survivor.accounts)</h1>
+
+<table class="coverageStats">
+
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">AccountController</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (7/7)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    76.7%
+  </span>
+  <span class="absValue">
+    (46/60)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    97.5%
+  </span>
+  <span class="absValue">
+    (77/79)
+  </span>
+</td>
+</tr>
+  <tr>
+    <td class="name">AccountController$$SpringCGLIB$$0</td>
+  </tr>
+<tr>
+  <td class="name"><strong>Total</strong></td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (7/7)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    76.7%
+  </span>
+  <span class="absValue">
+    (46/60)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    97.5%
+  </span>
+  <span class="absValue">
+    (77/79)
+  </span>
+</td>
+</tr>
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package survivor.accounts;
+&nbsp;
+&nbsp;import lombok.*;
+&nbsp;import jakarta.validation.Valid;
+&nbsp;import org.apache.commons.validator.routines.EmailValidator;
+&nbsp;import org.springframework.http.HttpStatus;
+&nbsp;import org.springframework.http.ResponseEntity;
+&nbsp;import org.springframework.transaction.annotation.Transactional;
+&nbsp;import org.springframework.web.bind.annotation.*;
+&nbsp;import org.springframework.web.server.ResponseStatusException;
+&nbsp;
+&nbsp;import survivor.characters.GameCharacterRepository;
+&nbsp;import survivor.characters.UserCharacterUnlock;
+&nbsp;import survivor.characters.UserCharacterUnlockRepository;
+&nbsp;import survivor.exceptions.BadRequestException;
+&nbsp;import survivor.exceptions.ConflictException;
+&nbsp;import survivor.exceptions.NotFoundException;
+&nbsp;import survivor.progress.UserProgress;
+&nbsp;import survivor.progress.UserProgressRepository;
+&nbsp;
+&nbsp;import java.time.LocalDateTime;
+&nbsp;import java.util.*;
+&nbsp;
+&nbsp;/**
+&nbsp; * @author John Draa
+&nbsp; */
+&nbsp;
+&nbsp;@RestController
+&nbsp;@RequestMapping(&quot;/accounts&quot;)
+&nbsp;@RequiredArgsConstructor
+&nbsp;public class AccountController {
+&nbsp;
+&nbsp;    private final AccountRepository accountRepository;
+&nbsp;    private final UserProgressRepository progressRepository;
+&nbsp;    private final GameCharacterRepository characterRepository;
+&nbsp;    private final UserCharacterUnlockRepository unlockRepository;
+&nbsp;
+&nbsp;    // -------- SIGNUP --------
+&nbsp;    @PostMapping(&quot;/signup&quot;)
+&nbsp;    @Transactional
+&nbsp;    public ResponseEntity&lt;?&gt; signup(@Valid @RequestBody AccountCreateDTO dto)
+&nbsp;    {
+<b class="pc">&nbsp;        String email = dto.email() == null ? null : dto.email().trim().toLowerCase();</b>
+<b class="pc">&nbsp;        String username = dto.username() == null ? null : dto.username().trim();</b>
+&nbsp;
+<b class="pc">&nbsp;        if (email != null &amp;&amp; accountRepository.existsByEmailIgnoreCase(email))</b>
+&nbsp;        {
+<b class="nc">&nbsp;            throw new ConflictException(&quot;email already in use&quot;);</b>
+&nbsp;        }
+<b class="pc">&nbsp;        if (username != null &amp;&amp; accountRepository.existsByUsernameIgnoreCase(username))</b>
+&nbsp;        {
+<b class="fc">&nbsp;            throw new ConflictException(&quot;username already in use&quot;);</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        var account = new Account();</b>
+<b class="fc">&nbsp;        account.setEmail(email);</b>
+<b class="fc">&nbsp;        account.setUsername(username);</b>
+<b class="fc">&nbsp;        account.setPassword(dto.password()); // TODO: hash in #16</b>
+&nbsp;
+<b class="fc">&nbsp;        var saved = accountRepository.save(account);</b>
+&nbsp;
+&nbsp;        // Auto-create progress
+<b class="pc">&nbsp;        if (!progressRepository.existsByAccount_Id(saved.getId()))</b>
+&nbsp;        {
+<b class="fc">&nbsp;            var progress = new UserProgress();</b>
+<b class="fc">&nbsp;            progress.setAccount(saved);</b>
+<b class="fc">&nbsp;            progress.setCoins(0);</b>
+<b class="fc">&nbsp;            progress.setTotalScore(0);</b>
+<b class="fc">&nbsp;            progressRepository.save(progress);</b>
+&nbsp;        }
+&nbsp;
+&nbsp;        // Grant base character
+<b class="fc">&nbsp;        characterRepository.findByCodeIgnoreCase(&quot;WANDERER&quot;).ifPresent(wanderer -&gt;</b>
+&nbsp;        {
+<b class="fc">&nbsp;            boolean alreadyGranted =</b>
+<b class="fc">&nbsp;                    unlockRepository.existsByAccount_IdAndCharacter_Id(saved.getId(), wanderer.getId());</b>
+<b class="pc">&nbsp;            if (!alreadyGranted)</b>
+&nbsp;            {
+<b class="fc">&nbsp;                unlockRepository.save(UserCharacterUnlock.builder()</b>
+<b class="fc">&nbsp;                        .account(saved)</b>
+<b class="fc">&nbsp;                        .character(wanderer)</b>
+<b class="fc">&nbsp;                        .unlockedAt(LocalDateTime.now())</b>
+<b class="fc">&nbsp;                        .build());</b>
+&nbsp;            }
+&nbsp;        });
+&nbsp;
+<b class="fc">&nbsp;        return ResponseEntity.status(HttpStatus.CREATED).body(AccountResponseDTO.from(saved));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    // -------- LOGIN --------
+&nbsp;    @GetMapping(&quot;/login&quot;)
+&nbsp;    public ResponseEntity&lt;?&gt; login(
+&nbsp;            @RequestParam(required = false) String email,
+&nbsp;            @RequestParam(required = false) String username,
+&nbsp;            @RequestParam(required = false) String password)
+&nbsp;    {
+&nbsp;
+<b class="pc">&nbsp;        if (password == null || password.isBlank())</b>
+&nbsp;        {
+<b class="fc">&nbsp;            throw new BadRequestException(&quot;password is required&quot;);</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        boolean hasEmail = email != null &amp;&amp; !email.isBlank();</b>
+<b class="fc">&nbsp;        boolean hasUsername = username != null &amp;&amp; !username.isBlank();</b>
+<b class="fc">&nbsp;        if (!hasEmail &amp;&amp; !hasUsername)</b>
+&nbsp;        {
+<b class="fc">&nbsp;            throw new BadRequestException(&quot;provide email or username&quot;);</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        if (hasEmail &amp;&amp; !EmailValidator.getInstance().isValid(email))</b>
+&nbsp;        {
+<b class="fc">&nbsp;            throw new BadRequestException(&quot;Invalid email format&quot;);</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        Account found = hasEmail</b>
+<b class="fc">&nbsp;                ? accountRepository.findByEmailIgnoreCase(email).orElse(null)</b>
+<b class="fc">&nbsp;                : accountRepository.findByUsernameIgnoreCase(username).orElse(null);</b>
+&nbsp;
+<b class="pc">&nbsp;        if (found == null || !found.getPassword().equals(password))</b>
+&nbsp;        {
+&nbsp;            // keep 401 via ResponseStatusException (no custom Unauthorized class)
+<b class="fc">&nbsp;            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;invalid credentials&quot;);</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        return ResponseEntity.ok(Map.of(</b>
+<b class="fc">&nbsp;                &quot;id&quot;, found.getId(),</b>
+<b class="fc">&nbsp;                &quot;email&quot;, found.getEmail(),</b>
+<b class="fc">&nbsp;                &quot;username&quot;, found.getUsername()</b>
+&nbsp;        ));
+&nbsp;    }
+&nbsp;
+&nbsp;    // -------- UPDATE --------
+&nbsp;    @PutMapping(&quot;/{id}&quot;)
+&nbsp;    @Transactional
+&nbsp;    public ResponseEntity&lt;?&gt; update(@PathVariable Integer id, @Valid @RequestBody AccountUpdateDTO dto)
+&nbsp;    {
+<b class="fc">&nbsp;        var existing = accountRepository.findById(id)</b>
+<b class="fc">&nbsp;                .orElseThrow(() -&gt; new NotFoundException(&quot;Account not found&quot;));</b>
+&nbsp;
+<b class="fc">&nbsp;        if (dto.email() != null)</b>
+&nbsp;        {
+<b class="fc">&nbsp;            var email = dto.email().trim().toLowerCase();</b>
+<b class="pc">&nbsp;            if (!email.equalsIgnoreCase(existing.getEmail())</b>
+<b class="fc">&nbsp;                    &amp;&amp; accountRepository.existsByEmailIgnoreCase(email))</b>
+&nbsp;            {
+<b class="fc">&nbsp;                throw new ConflictException(&quot;email already in use&quot;);</b>
+&nbsp;            }
+<b class="pc">&nbsp;            if (email.isBlank()) throw new BadRequestException(&quot;Email cannot be blank&quot;);</b>
+<b class="fc">&nbsp;            existing.setEmail(email);</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        if (dto.username() != null)</b>
+&nbsp;        {
+<b class="fc">&nbsp;            var username = dto.username().trim();</b>
+<b class="pc">&nbsp;            if (!username.equals(existing.getUsername())</b>
+<b class="pc">&nbsp;                    &amp;&amp; accountRepository.existsByUsernameIgnoreCase(username))</b>
+&nbsp;            {
+<b class="nc">&nbsp;                throw new ConflictException(&quot;username already in use&quot;);</b>
+&nbsp;            }
+<b class="fc">&nbsp;            if (username.isBlank()) throw new BadRequestException(&quot;Username cannot be blank&quot;);</b>
+<b class="fc">&nbsp;            existing.setUsername(username);</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        if (dto.password() != null)</b>
+&nbsp;        {
+<b class="fc">&nbsp;            var pwd = dto.password();</b>
+<b class="pc">&nbsp;            if (pwd.isBlank()) throw new BadRequestException(&quot;Password cannot be blank&quot;);</b>
+<b class="fc">&nbsp;            existing.setPassword(pwd); // TODO: hash later</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        var saved = accountRepository.save(existing);</b>
+<b class="fc">&nbsp;        return ResponseEntity.ok(AccountResponseDTO.from(saved));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    // -------- GET ONE --------
+&nbsp;    @GetMapping(&quot;/{id}&quot;)
+&nbsp;    public ResponseEntity&lt;?&gt; read(@PathVariable Integer id)
+&nbsp;    {
+<b class="fc">&nbsp;        var acc = accountRepository.findById(id)</b>
+<b class="fc">&nbsp;                .orElseThrow(() -&gt; new NotFoundException(&quot;Account not found&quot;));</b>
+<b class="fc">&nbsp;        return ResponseEntity.ok(AccountResponseDTO.from(acc));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    // -------- LIST ALL --------
+&nbsp;    @GetMapping
+&nbsp;    public ResponseEntity&lt;?&gt; listAll()
+&nbsp;    {
+<b class="fc">&nbsp;        var list = accountRepository.findAll().stream()</b>
+<b class="fc">&nbsp;                .map(AccountResponseDTO::from)</b>
+<b class="fc">&nbsp;                .toList();</b>
+<b class="fc">&nbsp;        return ResponseEntity.ok(list);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    // -------- DELETE --------
+&nbsp;    @Transactional
+&nbsp;    @DeleteMapping(&quot;/{id}&quot;)
+&nbsp;    public ResponseEntity&lt;?&gt; delete(@PathVariable Integer id)
+&nbsp;    {
+<b class="fc">&nbsp;        if (!accountRepository.existsById(id))</b>
+&nbsp;        {
+<b class="fc">&nbsp;            throw new NotFoundException(&quot;Account not found&quot;);</b>
+&nbsp;        }
+<b class="fc">&nbsp;        unlockRepository.deleteAllByAccount_Id(id);</b>
+<b class="fc">&nbsp;        progressRepository.deleteByAccount_Id(id);</b>
+<b class="fc">&nbsp;        accountRepository.deleteById(id);</b>
+<b class="fc">&nbsp;        return ResponseEntity.noContent().build();</b>
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-12-08 17:10</div>
+</div>
+</body>
+</html>

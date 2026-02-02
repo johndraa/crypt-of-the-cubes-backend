@@ -1,0 +1,255 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > GlobalExceptionHandler</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">survivor.exceptions</a>
+</div>
+
+<h1>Coverage Summary for Class: GlobalExceptionHandler (survivor.exceptions)</h1>
+
+<table class="coverageStats">
+
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">GlobalExceptionHandler</td>
+<td class="coverageStat">
+  <span class="percent">
+    46.2%
+  </span>
+  <span class="absValue">
+    (6/13)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    50%
+  </span>
+  <span class="absValue">
+    (2/4)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    42.3%
+  </span>
+  <span class="absValue">
+    (11/26)
+  </span>
+</td>
+</tr>
+  <tr>
+    <td class="name">GlobalExceptionHandler$ErrorBody</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (3/3)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (3/3)
+  </span>
+</td>
+  </tr>
+<tr>
+  <td class="name"><strong>Total</strong></td>
+<td class="coverageStat">
+  <span class="percent">
+    56.2%
+  </span>
+  <span class="absValue">
+    (9/16)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    50%
+  </span>
+  <span class="absValue">
+    (2/4)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    48.3%
+  </span>
+  <span class="absValue">
+    (14/29)
+  </span>
+</td>
+</tr>
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode"><b class="fc">&nbsp;package survivor.exceptions;</b>
+&nbsp;
+&nbsp;import jakarta.validation.ConstraintViolationException;
+&nbsp;import org.springframework.http.ResponseEntity;
+&nbsp;import org.springframework.web.bind.MethodArgumentNotValidException;
+&nbsp;import org.springframework.web.bind.annotation.ExceptionHandler;
+&nbsp;import org.springframework.web.bind.annotation.RestControllerAdvice;
+&nbsp;
+&nbsp;import java.util.LinkedHashMap;
+&nbsp;import java.util.Map;
+&nbsp;
+&nbsp;/**
+&nbsp; * @author John Draa
+&nbsp; */
+&nbsp;
+&nbsp;@RestControllerAdvice
+<b class="fc">&nbsp;public class GlobalExceptionHandler {</b>
+&nbsp;
+<b class="fc">&nbsp;    public record ErrorBody(String message, Map&lt;String,String&gt; errors)</b>
+&nbsp;    {
+<b class="fc">&nbsp;        public ErrorBody(String message) { this(message, null); }</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @ExceptionHandler(MethodArgumentNotValidException.class)
+&nbsp;    public ResponseEntity&lt;ErrorBody&gt; handleInvalidBody(MethodArgumentNotValidException ex)
+&nbsp;    {
+<b class="fc">&nbsp;        var errs = new LinkedHashMap&lt;String,String&gt;();</b>
+<b class="fc">&nbsp;        ex.getBindingResult().getFieldErrors()</b>
+<b class="fc">&nbsp;                .forEach(fe -&gt; errs.put(fe.getField(), fe.getDefaultMessage()));</b>
+<b class="fc">&nbsp;        return ResponseEntity.badRequest().body(new ErrorBody(&quot;validation_error&quot;, errs));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @ExceptionHandler(ConstraintViolationException.class)
+&nbsp;    public ResponseEntity&lt;ErrorBody&gt; handleParamViolations(ConstraintViolationException ex)
+&nbsp;    {
+<b class="nc">&nbsp;        var errs = new LinkedHashMap&lt;String,String&gt;();</b>
+<b class="nc">&nbsp;        ex.getConstraintViolations().forEach(v -&gt;</b>
+&nbsp;        {
+<b class="nc">&nbsp;            var path = v.getPropertyPath().toString();</b>
+<b class="nc">&nbsp;            var key = path.substring(path.lastIndexOf(&#39;.&#39;) + 1);</b>
+<b class="nc">&nbsp;            errs.put(key, v.getMessage());</b>
+&nbsp;        });
+<b class="nc">&nbsp;        return ResponseEntity.badRequest().body(new ErrorBody(&quot;validation_error&quot;, errs));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+&nbsp;    public ResponseEntity&lt;ErrorBody&gt; handleRse(org.springframework.web.server.ResponseStatusException ex)
+&nbsp;    {
+<b class="fc">&nbsp;        var msg = ex.getReason();</b>
+<b class="pc">&nbsp;        if (msg == null || msg.isBlank()) msg = ex.getStatusCode().toString();</b>
+<b class="fc">&nbsp;        return ResponseEntity.status(ex.getStatusCode()).body(new ErrorBody(msg));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+&nbsp;    public ResponseEntity&lt;ErrorBody&gt; handleUnreadable(org.springframework.http.converter.HttpMessageNotReadableException ex)
+&nbsp;    {
+<b class="nc">&nbsp;        return ResponseEntity.badRequest().body(new ErrorBody(&quot;invalid_request_body&quot;));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+&nbsp;    public ResponseEntity&lt;ErrorBody&gt; handleDbConstraint(org.springframework.dao.DataIntegrityViolationException ex)
+&nbsp;    {
+<b class="nc">&nbsp;        return ResponseEntity.status(409).body(new ErrorBody(&quot;constraint_violation&quot;));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @ExceptionHandler(NotFoundException.class)
+&nbsp;    public ResponseEntity&lt;ErrorBody&gt; handleNotFound(NotFoundException ex)
+&nbsp;    {
+<b class="fc">&nbsp;        return ResponseEntity.status(404).body(new ErrorBody(ex.getMessage()));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @ExceptionHandler(ConflictException.class)
+&nbsp;    public ResponseEntity&lt;ErrorBody&gt; handleConflict(ConflictException ex)
+&nbsp;    {
+<b class="fc">&nbsp;        return ResponseEntity.status(409).body(new ErrorBody(ex.getMessage()));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @ExceptionHandler(BadRequestException.class)
+&nbsp;    public ResponseEntity&lt;ErrorBody&gt; handleBadRequest(BadRequestException ex)
+&nbsp;    {
+<b class="fc">&nbsp;        return ResponseEntity.badRequest().body(new ErrorBody(ex.getMessage()));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @ExceptionHandler(Exception.class)
+&nbsp;    public ResponseEntity&lt;ErrorBody&gt; handleOther(Exception ex)
+&nbsp;    {
+<b class="nc">&nbsp;        return ResponseEntity.status(500).body(new ErrorBody(&quot;internal_error&quot;));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
+&nbsp;    public ResponseEntity&lt;ErrorBody&gt; handleMissingParam(
+&nbsp;            org.springframework.web.bind.MissingServletRequestParameterException ex) {
+<b class="nc">&nbsp;        var errs = new java.util.LinkedHashMap&lt;String,String&gt;();</b>
+<b class="nc">&nbsp;        errs.put(ex.getParameterName(), &quot;missing required parameter&quot;);</b>
+<b class="nc">&nbsp;        return ResponseEntity.badRequest().body(new ErrorBody(&quot;invalid_request_params&quot;, errs));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+&nbsp;    public ResponseEntity&lt;ErrorBody&gt; handleTypeMismatch(
+&nbsp;            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex) {
+<b class="nc">&nbsp;        var errs = new java.util.LinkedHashMap&lt;String,String&gt;();</b>
+<b class="nc">&nbsp;        errs.put(ex.getName(), &quot;invalid type&quot;);</b>
+<b class="nc">&nbsp;        return ResponseEntity.badRequest().body(new ErrorBody(&quot;invalid_request_params&quot;, errs));</b>
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-12-08 17:10</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,360 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > LobbySocketHandler</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">survivor.match</a>
+</div>
+
+<h1>Coverage Summary for Class: LobbySocketHandler (survivor.match)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">LobbySocketHandler</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/11)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/43)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/96)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package survivor.match;
+&nbsp;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import org.springframework.stereotype.Component;
+&nbsp;import survivor.config.FogConfig;
+&nbsp;import survivor.runtime.MatchRuntimeRegistry;
+&nbsp;import survivor.ws.GameWs;
+&nbsp;import survivor.ws.dto.*;
+&nbsp;
+&nbsp;import java.time.Instant;
+&nbsp;import java.util.ArrayDeque;
+&nbsp;import java.util.Deque;
+&nbsp;import java.util.Map;
+&nbsp;import java.util.concurrent.ConcurrentHashMap;
+&nbsp;
+&nbsp;import survivor.characters.GameCharacterRepository;
+&nbsp;import survivor.characters.GameCharacter;          // PA entity
+&nbsp;import survivor.shared.AttackStyle;                 // shared enum
+&nbsp;import survivor.combat.Stats;
+&nbsp;import survivor.combat.Vec2;
+&nbsp;import survivor.model.PlayerState;
+&nbsp;
+&nbsp;@Component
+&nbsp;@RequiredArgsConstructor
+&nbsp;public class LobbySocketHandler
+&nbsp;{
+&nbsp;    private final MatchStore store;
+&nbsp;    private final MatchRepository matches;
+&nbsp;    private final FogConfig fog;
+&nbsp;    private final MatchRuntimeRegistry runtimes;
+&nbsp;    private final GameWs ws;
+&nbsp;    private final GameCharacterRepository characters;
+&nbsp;    private final survivor.characters.UserCharacterUnlockRepository unlockRepo;
+&nbsp;
+&nbsp;    private final Map&lt;Long, Deque&lt;ChatMessage&gt;&gt; chatHistory = new ConcurrentHashMap&lt;&gt;();
+&nbsp;
+&nbsp;    // JOIN / LEAVE / READY / SELECT
+&nbsp;    public void onJoin(JoinMsg m)
+&nbsp;    {
+<b class="nc">&nbsp;        store.join(m.matchId(), m.accountId());</b>
+<b class="nc">&nbsp;        broadcast(m.matchId());</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    public void onLeave(survivor.ws.dto.LeaveMsg m)
+&nbsp;    {
+<b class="nc">&nbsp;        store.leave(m.matchId(), m.accountId());</b>
+<b class="nc">&nbsp;        broadcast(m.matchId());</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    public void onReady(ReadyMsg m)
+&nbsp;    {
+<b class="nc">&nbsp;        store.setReady(m.matchId(), m.accountId(), m.ready());</b>
+<b class="nc">&nbsp;        broadcast(m.matchId());</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    public void onSelect(SelectMsg m)
+&nbsp;    {
+<b class="nc">&nbsp;        if (store.lockCharacter(m.matchId(), m.accountId(), m.characterCode()))</b>
+&nbsp;        {
+<b class="nc">&nbsp;            broadcast(m.matchId());</b>
+&nbsp;        }
+&nbsp;        else
+&nbsp;        {
+&nbsp;            // Determine specific reason for failure
+<b class="nc">&nbsp;            String reason = &quot;Unknown error&quot;;</b>
+<b class="nc">&nbsp;            String characterCode = m.characterCode();</b>
+&nbsp;            
+<b class="nc">&nbsp;            if (characterCode == null || characterCode.isBlank()) {</b>
+<b class="nc">&nbsp;                reason = &quot;No character specified&quot;;</b>
+&nbsp;            } else {
+<b class="nc">&nbsp;                var gc = characters.findByCodeIgnoreCase(characterCode).orElse(null);</b>
+<b class="nc">&nbsp;                if (gc == null) {</b>
+<b class="nc">&nbsp;                    reason = &quot;Character does not exist&quot;;</b>
+<b class="nc">&nbsp;                } else if (!gc.getCode().equals(&quot;WANDERER&quot;)) {</b>
+&nbsp;                    // Check ownership for non-WANDERER characters
+<b class="nc">&nbsp;                    boolean ownsCharacter = unlockRepo.existsByAccount_IdAndCharacter_Id(m.accountId(), gc.getId());</b>
+<b class="nc">&nbsp;                    if (!ownsCharacter) {</b>
+<b class="nc">&nbsp;                        reason = &quot;Character not owned&quot;;</b>
+&nbsp;                    } else {
+&nbsp;                        // This should not happen - ownership check passed but selection failed
+<b class="nc">&nbsp;                        reason = &quot;Unexpected error during character selection&quot;;</b>
+&nbsp;                    }
+&nbsp;                } else {
+&nbsp;                    // WANDERER should never fail (it&#39;s non-exclusive and free)
+&nbsp;                    // This case should not happen, but just in case
+<b class="nc">&nbsp;                    reason = &quot;Unexpected error with WANDERER selection&quot;;</b>
+&nbsp;                }
+&nbsp;            }
+&nbsp;            
+<b class="nc">&nbsp;            sendPrivate(m.matchId(), m.accountId(), Map.of(</b>
+<b class="nc">&nbsp;                    &quot;event&quot;, &quot;SELECT_DENIED&quot;,</b>
+<b class="nc">&nbsp;                    &quot;characterCode&quot;, characterCode,</b>
+<b class="nc">&nbsp;                    &quot;reason&quot;, reason</b>
+&nbsp;            ));
+&nbsp;        }
+&nbsp;    }
+&nbsp;
+&nbsp;    // CHAT
+&nbsp;    public void onChat(ChatMessage msg)
+&nbsp;    {
+<b class="nc">&nbsp;        if (msg.text() == null || msg.text().isBlank()) return;</b>
+<b class="nc">&nbsp;        ChatMessage c = new ChatMessage(</b>
+<b class="nc">&nbsp;                msg.matchId(), msg.accountId(), msg.username(),</b>
+<b class="nc">&nbsp;                msg.text().trim(), Instant.now()</b>
+&nbsp;        );
+<b class="nc">&nbsp;        chatHistory.computeIfAbsent(msg.matchId(), k -&gt; new ArrayDeque&lt;&gt;()).addLast(c);</b>
+<b class="nc">&nbsp;        if (chatHistory.get(msg.matchId()).size() &gt; 50) chatHistory.get(msg.matchId()).removeFirst();</b>
+<b class="nc">&nbsp;        ws.chat(msg.matchId(), c);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    // START
+&nbsp;    public void onRequestStart(RequestStartMsg m)
+&nbsp;    {
+<b class="nc">&nbsp;        var snap = store.snapshot(m.matchId());</b>
+&nbsp;        
+&nbsp;        // Validation checks
+<b class="nc">&nbsp;        if (snap.isEmpty()) {</b>
+<b class="nc">&nbsp;            sendToMatch(m.matchId(), Map.of(&quot;event&quot;, &quot;START_FAILED&quot;, &quot;reason&quot;, &quot;No players in lobby&quot;));</b>
+&nbsp;            return;
+&nbsp;        }
+&nbsp;        
+&nbsp;        // Commented out to allow single player matches for testing
+&nbsp;        //TODO switch back to this logic for production
+&nbsp;        // if (snap.size() &lt; 2) {
+&nbsp;        //     sendToMatch(m.matchId(), Map.of(&quot;event&quot;, &quot;START_FAILED&quot;, &quot;reason&quot;, &quot;Need at least 2 players&quot;));
+&nbsp;        //     return;
+&nbsp;        // }
+&nbsp;
+<b class="nc">&nbsp;        if (snap.size() &gt; 4) {</b>
+<b class="nc">&nbsp;            sendToMatch(m.matchId(), Map.of(&quot;event&quot;, &quot;START_FAILED&quot;, &quot;reason&quot;, &quot;Can&#39;t have more than 4 players&quot;));</b>
+&nbsp;            return;
+&nbsp;        }
+&nbsp;        
+&nbsp;        
+<b class="nc">&nbsp;        boolean allReady = snap.stream().allMatch(LobbyPlayer::ready);</b>
+<b class="nc">&nbsp;        boolean allPicked = snap.stream().allMatch(lp -&gt; lp.characterCode() != null);</b>
+&nbsp;        
+<b class="nc">&nbsp;        if (!allReady) {</b>
+<b class="nc">&nbsp;            var unreadyPlayers = snap.stream()</b>
+<b class="nc">&nbsp;                    .filter(lp -&gt; !lp.ready())</b>
+<b class="nc">&nbsp;                    .map(LobbyPlayer::accountId)</b>
+<b class="nc">&nbsp;                    .toList();</b>
+<b class="nc">&nbsp;            sendToMatch(m.matchId(), Map.of(</b>
+<b class="nc">&nbsp;                    &quot;event&quot;, &quot;START_FAILED&quot;, </b>
+<b class="nc">&nbsp;                    &quot;reason&quot;, &quot;Not all players ready&quot;,</b>
+<b class="nc">&nbsp;                    &quot;unreadyPlayers&quot;, unreadyPlayers</b>
+&nbsp;            ));
+&nbsp;            return;
+&nbsp;        }
+&nbsp;        
+<b class="nc">&nbsp;        if (!allPicked) {</b>
+<b class="nc">&nbsp;            var unselectedPlayers = snap.stream()</b>
+<b class="nc">&nbsp;                    .filter(lp -&gt; lp.characterCode() == null)</b>
+<b class="nc">&nbsp;                    .map(LobbyPlayer::accountId)</b>
+<b class="nc">&nbsp;                    .toList();</b>
+<b class="nc">&nbsp;            sendToMatch(m.matchId(), Map.of(</b>
+<b class="nc">&nbsp;                    &quot;event&quot;, &quot;START_FAILED&quot;, </b>
+<b class="nc">&nbsp;                    &quot;reason&quot;, &quot;Not all players have selected characters&quot;,</b>
+<b class="nc">&nbsp;                    &quot;unselectedPlayers&quot;, unselectedPlayers</b>
+&nbsp;            ));
+&nbsp;            return;
+&nbsp;        }
+&nbsp;
+&nbsp;        // All conditions met - prepare the match
+<b class="nc">&nbsp;        store.markActive(m.matchId(), Instant.now());</b>
+&nbsp;        
+&nbsp;        // Create runtime without starting it yet (will start after countdown)
+<b class="nc">&nbsp;        runtimes.createRuntime(m.matchId(), fog);</b>
+&nbsp;
+&nbsp;        //add players to runtime using characterCode + findByCodeIgnoreCase
+<b class="nc">&nbsp;        runtimes.get(m.matchId()).ifPresent(rt -&gt;</b>
+&nbsp;        {
+<b class="nc">&nbsp;            int i = 0;</b>
+<b class="nc">&nbsp;            for (var lp : snap)</b>
+&nbsp;            {
+<b class="nc">&nbsp;                String code = lp.characterCode();</b>
+<b class="nc">&nbsp;                if (code == null || code.isBlank()) continue; // defensive</b>
+&nbsp;
+<b class="nc">&nbsp;                var gcOpt = characters.findByCodeIgnoreCase(code);</b>
+<b class="nc">&nbsp;                if (gcOpt.isEmpty()) {</b>
+<b class="nc">&nbsp;                    System.err.println(&quot;Character not found: &quot; + code);</b>
+&nbsp;                    continue;
+&nbsp;                }
+&nbsp;
+<b class="nc">&nbsp;                GameCharacter gc = gcOpt.get();</b>
+&nbsp;
+&nbsp;                // Map JPA entity -&gt; runtime Stats
+<b class="nc">&nbsp;                Stats stats = new Stats(</b>
+<b class="nc">&nbsp;                        gc.getHealth(),</b>
+<b class="nc">&nbsp;                        gc.getMoveSpeed(),</b>
+<b class="nc">&nbsp;                        gc.getAttackSpeed(),</b>
+<b class="nc">&nbsp;                        gc.getDamageMult(),</b>
+<b class="nc">&nbsp;                        gc.getCritChance(),</b>
+<b class="nc">&nbsp;                        gc.getRangeUnits()</b>
+&nbsp;                );
+&nbsp;
+&nbsp;                // Everyone starts with AOE weapon (upgrades via XP system change this later)
+<b class="nc">&nbsp;                AttackStyle style = AttackStyle.AOE;</b>
+&nbsp;
+<b class="nc">&nbsp;                Vec2 spawn = spawnForIndex(i++);</b>
+<b class="nc">&nbsp;                PlayerState p = new PlayerState(lp.accountId(), spawn, stats, style, stats.health());</b>
+<b class="nc">&nbsp;                rt.addPlayer(p);</b>
+&nbsp;            }
+&nbsp;        });
+&nbsp;
+&nbsp;        // Send countdown start message (client-side UI only)
+<b class="nc">&nbsp;        int countdownSeconds = 3;</b>
+<b class="nc">&nbsp;        sendToMatch(m.matchId(),</b>
+<b class="nc">&nbsp;                new StartMsg(m.matchId(), new Fog(fog.getLight(), fog.getWake(), fog.getSleep()), countdownSeconds));</b>
+&nbsp;
+&nbsp;        // Start the runtime immediately (client will handle countdown UI)
+<b class="nc">&nbsp;        runtimes.startExistingRuntime(m.matchId());</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    private Vec2 spawnForIndex(int idx)
+&nbsp;    {
+&nbsp;        // Keep lobby spawn positions aligned with the 2000x2000 world used by Physics/MatchRuntime
+<b class="nc">&nbsp;        final int TILE = 24;</b>
+<b class="nc">&nbsp;        final int MAP_W = 2000;</b>
+<b class="nc">&nbsp;        final int MAP_H = 2000;</b>
+<b class="nc">&nbsp;        final int M = 4 * TILE; // margin from each edge (in pixels)</b>
+&nbsp;
+<b class="nc">&nbsp;        return switch (idx % 4)</b>
+&nbsp;        {
+<b class="nc">&nbsp;            case 0 -&gt; new Vec2(M, M);</b>
+<b class="nc">&nbsp;            case 1 -&gt; new Vec2(MAP_W - M, M);</b>
+<b class="nc">&nbsp;            case 2 -&gt; new Vec2(M, MAP_H - M);</b>
+<b class="nc">&nbsp;            default -&gt; new Vec2(MAP_W - M, MAP_H - M);</b>
+&nbsp;        };
+&nbsp;    }
+&nbsp;
+&nbsp;    private void broadcast(long mid) {
+<b class="nc">&nbsp;        var match = matches.findById(mid).orElseThrow();</b>
+<b class="nc">&nbsp;        sendToMatch(mid, new LobbySnapshot(mid, match.getStatus(), store.snapshot(mid)));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    private void sendToMatch(long mid, Object payload) {
+<b class="nc">&nbsp;        ws.lobby(mid, payload);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    private void sendPrivate(long mid, int accountId, Object payload) {
+<b class="nc">&nbsp;        ws.toPlayer(mid, accountId, payload);</b>
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-12-08 17:10</div>
+</div>
+</body>
+</html>

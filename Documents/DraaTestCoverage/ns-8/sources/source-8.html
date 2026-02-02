@@ -1,0 +1,115 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > Match</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">survivor.match</a>
+</div>
+
+<h1>Coverage Summary for Class: Match (survivor.match)</h1>
+
+<table class="coverageStats">
+
+<tr>
+  <th class="name">Class</th>
+</tr>
+  <tr>
+    <td class="name">Match$HibernateInstantiator$BFyA4Old</td>
+  </tr>
+  <tr>
+    <td class="name">Match$HibernateInstantiator$oxgkADna</td>
+  </tr>
+  <tr>
+    <td class="name">Match$HibernateProxy$1dtGsIbC</td>
+  </tr>
+  <tr>
+    <td class="name">Match$HibernateProxy$lbkEfTig</td>
+  </tr>
+<tr>
+  <td class="name"><strong>Total</strong></td>
+</tr>
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package survivor.match;
+&nbsp;
+&nbsp;import jakarta.persistence.*;
+&nbsp;import lombok.*;
+&nbsp;import org.hibernate.annotations.CreationTimestamp;
+&nbsp;import java.time.Instant;
+&nbsp;
+&nbsp;/**
+&nbsp; * @author John Draa
+&nbsp; */
+&nbsp;
+&nbsp;@Entity
+&nbsp;@Table(name = &quot;matches&quot;)
+&nbsp;@Getter
+&nbsp;@Setter @NoArgsConstructor @AllArgsConstructor @Builder
+&nbsp;public class Match
+&nbsp;{
+&nbsp;    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+&nbsp;    private Long id;
+&nbsp;
+&nbsp;    @Column(name=&quot;join_code&quot;, nullable = false, unique = true, length = 8)
+&nbsp;    private String joinCode;  // e.g. &quot;A9KXQZ&quot;
+&nbsp;
+&nbsp;    @Enumerated(EnumType.STRING)
+&nbsp;    @Column(nullable = false)
+&nbsp;    @jakarta.validation.constraints.NotNull
+&nbsp;    @Builder.Default
+&nbsp;    private MatchStatus status = MatchStatus.LOBBY;      // LOBBY, ACTIVE, ENDED, ABORTED
+&nbsp;
+&nbsp;    private Integer winnerAccountId; // nullable until end
+&nbsp;
+&nbsp;    @CreationTimestamp private Instant createdAt;
+&nbsp;    private Instant startedAt;
+&nbsp;    private Instant endedAt;
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-12-08 17:10</div>
+</div>
+</body>
+</html>

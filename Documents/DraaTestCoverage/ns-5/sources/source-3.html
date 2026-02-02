@@ -1,0 +1,298 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > EnemyAiSystem</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">survivor.combat</a>
+</div>
+
+<h1>Coverage Summary for Class: EnemyAiSystem (survivor.combat)</h1>
+
+<table class="coverageStats">
+
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">EnemyAiSystem</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (8/8)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    86.8%
+  </span>
+  <span class="absValue">
+    (33/38)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    97.6%
+  </span>
+  <span class="absValue">
+    (40/41)
+  </span>
+</td>
+</tr>
+  <tr>
+    <td class="name">EnemyAiSystem$EnemyActor</td>
+  </tr>
+  <tr>
+    <td class="name">EnemyAiSystem$EnemyGate</td>
+  </tr>
+  <tr>
+    <td class="name">EnemyAiSystem$PlayerActor</td>
+  </tr>
+  <tr>
+    <td class="name">EnemyAiSystem$PlayerPos</td>
+  </tr>
+<tr>
+  <td class="name"><strong>Total</strong></td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (8/8)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    86.8%
+  </span>
+  <span class="absValue">
+    (33/38)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    97.6%
+  </span>
+  <span class="absValue">
+    (40/41)
+  </span>
+</td>
+</tr>
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package survivor.combat;
+&nbsp;
+&nbsp;import java.util.*;
+&nbsp;import java.util.SplittableRandom;
+&nbsp;
+&nbsp;import survivor.model.EnemyType; // enum: BUMPER, SWIPER
+&nbsp;
+&nbsp;/**
+&nbsp; * @author John Draa
+&nbsp; */
+<b class="fc">&nbsp;public final class EnemyAiSystem {</b>
+&nbsp;    private EnemyAiSystem() {}
+&nbsp;
+<b class="fc">&nbsp;    private static final SplittableRandom RNG = new SplittableRandom();</b>
+&nbsp;
+&nbsp;    /** Wake/sleep by distance to the nearest player */
+&nbsp;    public static void gateActivity(
+&nbsp;            List&lt;? extends EnemyGate&gt; enemies,
+&nbsp;            Collection&lt;? extends PlayerPos&gt; players,
+&nbsp;            double rWakePx, double rSleepPx
+&nbsp;    )
+&nbsp;    {
+<b class="fc">&nbsp;        for (var e : enemies)</b>
+&nbsp;        {
+<b class="fc">&nbsp;            double d = players.stream().mapToDouble(p -&gt; dist(e.pos(), p.pos())).min().orElse(Double.MAX_VALUE);</b>
+<b class="fc">&nbsp;            if (!e.active() &amp;&amp; d &lt;= rWakePx) e.setActive(true);</b>
+<b class="pc">&nbsp;            if ( e.active() &amp;&amp; d &gt;= rSleepPx) e.setActive(false);</b>
+&nbsp;        }
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Enemy AI step.
+&nbsp;     * Returns enemy→player hits using shared cone logic (SWIPER) and contact overlap (BUMPER).
+&nbsp;     * Fairness: only attack if target is within player&#39;s visibility (≤ fairnessLightPx).
+&nbsp;     */
+&nbsp;    public static List&lt;AttackSystem.Hit&gt; tick(
+&nbsp;            List&lt;? extends EnemyActor&gt; enemies,
+&nbsp;            Collection&lt;? extends PlayerActor&gt; players,
+&nbsp;            double fairnessLightPx,
+&nbsp;            int tilePx
+&nbsp;    )
+&nbsp;    {
+<b class="fc">&nbsp;        long now = System.currentTimeMillis();</b>
+<b class="fc">&nbsp;        List&lt;AttackSystem.Hit&gt; out = new ArrayList&lt;&gt;();</b>
+&nbsp;
+<b class="fc">&nbsp;        for (var e : enemies)</b>
+&nbsp;        {
+<b class="fc">&nbsp;            if (!e.active() || e.isDead()) continue;</b>
+&nbsp;
+<b class="fc">&nbsp;            var target = nearest(players, e.pos());</b>
+&nbsp;            // steer toward target; replace with richer physics if desired
+<b class="fc">&nbsp;            e.seek(target.pos());</b>
+&nbsp;
+&nbsp;            // fairness guard: don&#39;t start/commit attacks from out of sight
+<b class="fc">&nbsp;            if (dist(e.pos(), target.pos()) &gt; fairnessLightPx + 8) continue;</b>
+&nbsp;
+<b class="pc">&nbsp;            switch (e.type())</b>
+&nbsp;            {
+&nbsp;                case BUMPER -&gt;
+&nbsp;                {
+&nbsp;                    // simple contact DPS every ~300 ms (scaled by attackSpeed)
+<b class="fc">&nbsp;                    int intervalMs = Math.max(200, 600 - e.stats().attackSpeed() * 5);</b>
+<b class="fc">&nbsp;                    if (now - e.lastContactAt() &gt;= intervalMs &amp;&amp;</b>
+<b class="fc">&nbsp;                            circlesOverlap(e.pos(), e.radiusPx(), target.pos(), target.radiusPx()))</b>
+&nbsp;                    {
+&nbsp;
+<b class="fc">&nbsp;                        int dmg = (int)Math.round(Formulas.damage(e.stats(), 6.0));</b>
+<b class="pc">&nbsp;                        if (RNG.nextDouble() &lt; (e.stats().critChance() / 100.0)) dmg = (int)Math.round(dmg * 1.5);</b>
+&nbsp;
+<b class="fc">&nbsp;                        out.add(new AttackSystem.Hit(e.id(), target.id(), dmg, false));</b>
+<b class="fc">&nbsp;                        e.setLastContactAt(now);</b>
+&nbsp;                    }
+&nbsp;                }
+&nbsp;                case SWIPER -&gt;
+&nbsp;                {
+&nbsp;                    // cone swipe (shared math with players)
+<b class="fc">&nbsp;                    int iv = Formulas.intervalMs(e.stats(), 1.2);</b>
+<b class="fc">&nbsp;                    if (now - e.lastAttackAt() &lt; iv) break;</b>
+<b class="fc">&nbsp;                    e.setLastAttackAt(now);</b>
+&nbsp;
+<b class="fc">&nbsp;                    var aim     = dir(e.pos(), target.pos());</b>
+<b class="fc">&nbsp;                    double len  = 2.0 * tilePx * Formulas.rangeFactor(e.stats());</b>
+<b class="fc">&nbsp;                    double half = Math.toRadians(60.0) * (0.9 + 0.005 * e.stats().range()) * 0.5;</b>
+&nbsp;
+<b class="fc">&nbsp;                    int dmg = (int)Math.round(Formulas.damage(e.stats(), 8.0));</b>
+<b class="pc">&nbsp;                    if (RNG.nextDouble() &lt; (e.stats().critChance() / 100.0)) dmg = (int)Math.round(dmg * 1.5);</b>
+&nbsp;
+<b class="pc">&nbsp;                    if (Cone.contains(e.pos(), aim, target.pos(), len, half))</b>
+&nbsp;                    {
+<b class="nc">&nbsp;                        out.add(new AttackSystem.Hit(e.id(), target.id(), dmg, false));</b>
+&nbsp;                    }
+&nbsp;                }
+&nbsp;            }
+&nbsp;        }
+<b class="fc">&nbsp;        return out;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    // ——— Helper minimal views to decouple from your models ———
+&nbsp;    public interface PlayerPos { Vec2 pos(); }
+&nbsp;
+&nbsp;    public interface EnemyGate
+&nbsp;    {
+&nbsp;        Vec2 pos();
+&nbsp;        boolean active();
+&nbsp;        void setActive(boolean v);
+&nbsp;    }
+&nbsp;
+&nbsp;    public interface PlayerActor extends PlayerPos
+&nbsp;    {
+&nbsp;        int id();
+&nbsp;        double radiusPx();
+&nbsp;    }
+&nbsp;
+&nbsp;    public interface EnemyActor extends EnemyGate
+&nbsp;    {
+&nbsp;        int id();
+&nbsp;        Stats stats();
+&nbsp;        boolean isDead();
+&nbsp;
+&nbsp;        long lastAttackAt();
+&nbsp;        void setLastAttackAt(long t);
+&nbsp;
+&nbsp;        long lastContactAt();
+&nbsp;        void setLastContactAt(long t);
+&nbsp;
+&nbsp;        /** Basic chase step; implement with your physics/collision */
+&nbsp;        void seek(Vec2 targetPos);
+&nbsp;
+&nbsp;        EnemyType type();
+&nbsp;        double radiusPx();
+&nbsp;    }
+&nbsp;
+&nbsp;    // ——— internals ———
+&nbsp;    private static PlayerActor nearest(Collection&lt;? extends PlayerActor&gt; players, Vec2 pos)
+&nbsp;    {
+<b class="fc">&nbsp;        return players.stream()</b>
+<b class="fc">&nbsp;                .min(Comparator.comparingDouble(p -&gt; dist(p.pos(), pos)))</b>
+<b class="fc">&nbsp;                .orElseThrow();</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    private static boolean circlesOverlap(Vec2 a, double ra, Vec2 b, double rb)
+&nbsp;    {
+<b class="fc">&nbsp;        double dx = a.x() - b.x(), dy = a.y() - b.y();</b>
+<b class="fc">&nbsp;        double r  = ra + rb;</b>
+<b class="fc">&nbsp;        return dx*dx + dy*dy &lt;= r*r;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    private static Vec2 dir(Vec2 a, Vec2 b)
+&nbsp;    {
+<b class="fc">&nbsp;        double dx = b.x() - a.x(), dy = b.y() - a.y(), L = Math.hypot(dx, dy);</b>
+<b class="pc">&nbsp;        return L == 0.0 ? new Vec2(1, 0) : new Vec2(dx / L, dy / L);</b>
+&nbsp;    }
+&nbsp;
+<b class="fc">&nbsp;    private static double dist(Vec2 a, Vec2 b) { return Math.hypot(a.x() - b.x(), a.y() - b.y()); }</b>
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-12-08 17:10</div>
+</div>
+</body>
+</html>

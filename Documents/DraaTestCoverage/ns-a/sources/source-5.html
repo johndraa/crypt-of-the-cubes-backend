@@ -1,0 +1,243 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > UserProgressController</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">survivor.progress</a>
+</div>
+
+<h1>Coverage Summary for Class: UserProgressController (survivor.progress)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">UserProgressController</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    66.7%
+  </span>
+  <span class="absValue">
+    (4/6)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    50%
+  </span>
+  <span class="absValue">
+    (6/12)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    67.4%
+  </span>
+  <span class="absValue">
+    (31/46)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package survivor.progress;
+&nbsp;
+&nbsp;import jakarta.validation.Valid;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import org.springframework.http.HttpStatus;
+&nbsp;import org.springframework.http.ResponseEntity;
+&nbsp;import org.springframework.web.bind.annotation.*;
+&nbsp;import survivor.accounts.AccountRepository;
+&nbsp;import survivor.exceptions.BadRequestException;
+&nbsp;import survivor.exceptions.ConflictException;
+&nbsp;import survivor.exceptions.NotFoundException;
+&nbsp;
+&nbsp;import java.util.stream.IntStream;
+&nbsp;
+&nbsp;/**
+&nbsp; * @author John Draa
+&nbsp; */
+&nbsp;
+&nbsp;@RestController
+&nbsp;@RequestMapping(&quot;/progress&quot;)
+&nbsp;@RequiredArgsConstructor
+&nbsp;public class UserProgressController
+&nbsp;{
+&nbsp;
+&nbsp;    private final UserProgressRepository progressRepo;
+&nbsp;    private final AccountRepository accountRepo;
+&nbsp;
+&nbsp;    //-----CREATE (testing only)-----
+&nbsp;    @PostMapping
+&nbsp;    public ResponseEntity&lt;?&gt; create(@Valid @RequestBody ProgressCreateDTO body)
+&nbsp;    {
+<b class="nc">&nbsp;        Integer accountId = body.accountId();</b>
+&nbsp;
+<b class="nc">&nbsp;        var account = accountRepo.findById(accountId)</b>
+<b class="nc">&nbsp;                .orElseThrow(() -&gt; new NotFoundException(&quot;Account not found&quot;));</b>
+&nbsp;
+<b class="nc">&nbsp;        if (progressRepo.existsByAccount_Id(accountId))</b>
+&nbsp;        {
+<b class="nc">&nbsp;            throw new ConflictException(&quot;Progress already exists for this account&quot;);</b>
+&nbsp;        }
+&nbsp;
+<b class="nc">&nbsp;        var saved = progressRepo.save(UserProgress.builder()</b>
+<b class="nc">&nbsp;                .account(account).coins(0).totalScore(0).build());</b>
+&nbsp;
+<b class="nc">&nbsp;        long higher = progressRepo.countWithHigherScore(accountId);</b>
+<b class="nc">&nbsp;        int rank = (int) higher + 1;</b>
+&nbsp;
+<b class="nc">&nbsp;        return ResponseEntity.status(HttpStatus.CREATED)</b>
+<b class="nc">&nbsp;                .body(ProgressResponseDTO.from(saved, rank));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    //-----UPDATE (add to totals)-----
+&nbsp;    @PutMapping(&quot;/{id}&quot;)
+&nbsp;    public ResponseEntity&lt;?&gt; update(@PathVariable Integer id, @Valid @RequestBody ProgressUpdateDTO req)
+&nbsp;    {
+<b class="fc">&nbsp;        var p = progressRepo.findById(id)</b>
+<b class="fc">&nbsp;                .orElseThrow(() -&gt; new NotFoundException(&quot;Account progress not found&quot;));</b>
+&nbsp;
+<b class="fc">&nbsp;        if (req.getCoins() != null)</b>
+&nbsp;        {
+<b class="fc">&nbsp;            int c = req.getCoins();</b>
+<b class="pc">&nbsp;            if (c &lt; 0) throw new BadRequestException(&quot;coins must be &gt;= 0&quot;);</b>
+<b class="fc">&nbsp;            p.setCoins(p.getCoins() + c);</b>
+&nbsp;        }
+<b class="fc">&nbsp;        if (req.getTotalScore() != null)</b>
+&nbsp;        {
+<b class="fc">&nbsp;            int s = req.getTotalScore();</b>
+<b class="pc">&nbsp;            if (s &lt; 0) throw new BadRequestException(&quot;totalScore must be &gt;= 0&quot;);</b>
+<b class="fc">&nbsp;            p.setTotalScore(p.getTotalScore() + s);</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        var saved = progressRepo.save(p);</b>
+&nbsp;
+<b class="fc">&nbsp;        var accountId = saved.getAccount().getId();</b>
+<b class="fc">&nbsp;        long higher = progressRepo.countWithHigherScore(accountId);</b>
+<b class="fc">&nbsp;        int rank = (int) higher + 1;</b>
+&nbsp;
+<b class="fc">&nbsp;        return ResponseEntity.ok(ProgressResponseDTO.from(saved, rank));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    //-----DELETE (testing)-----
+&nbsp;    @DeleteMapping(&quot;/{id}&quot;)
+&nbsp;    public ResponseEntity&lt;?&gt; delete(@PathVariable Integer id)
+&nbsp;    {
+<b class="nc">&nbsp;        if (!progressRepo.existsById(id))</b>
+&nbsp;        {
+<b class="nc">&nbsp;            throw new NotFoundException(&quot;Account progress not found&quot;);</b>
+&nbsp;        }
+<b class="nc">&nbsp;        progressRepo.deleteById(id);</b>
+<b class="nc">&nbsp;        return ResponseEntity.noContent().build();</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    //-----READ by account id (includes rank)-----
+&nbsp;    @GetMapping(&quot;/by-account/{accountId}&quot;)
+&nbsp;    public ResponseEntity&lt;?&gt; getByAccount(@PathVariable Integer accountId)
+&nbsp;    {
+<b class="fc">&nbsp;        var p = progressRepo.findByAccount_Id(accountId)</b>
+<b class="fc">&nbsp;                .orElseThrow(() -&gt; new NotFoundException(&quot;Progress not found&quot;));</b>
+&nbsp;
+<b class="fc">&nbsp;        long higher = progressRepo.countWithHigherScore(accountId);</b>
+<b class="fc">&nbsp;        int rank = (int) higher + 1;</b>
+&nbsp;
+<b class="fc">&nbsp;        return ResponseEntity.ok(ProgressResponseDTO.from(p, rank));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    //-----TOP 50 leaderboard-----
+&nbsp;    @GetMapping(&quot;/leaderboard&quot;)
+&nbsp;    public ResponseEntity&lt;?&gt; top50()
+&nbsp;    {
+<b class="fc">&nbsp;        var top = progressRepo.findTop50ByOrderByTotalScoreDesc(); // List&lt;UserProgress&gt;</b>
+&nbsp;
+<b class="fc">&nbsp;        var rows = IntStream.range(0, top.size())</b>
+<b class="fc">&nbsp;                .mapToObj(i -&gt;</b>
+&nbsp;                {
+<b class="fc">&nbsp;                    var p = top.get(i);</b>
+<b class="fc">&nbsp;                    return new LeaderboardRowDTO(</b>
+<b class="fc">&nbsp;                            p.getAccount().getId(),</b>
+<b class="fc">&nbsp;                            p.getAccount().getUsername(),</b>
+<b class="fc">&nbsp;                            p.getTotalScore(),</b>
+<b class="fc">&nbsp;                            i + 1</b>
+&nbsp;                    );
+&nbsp;                })
+<b class="fc">&nbsp;                .toList();</b>
+&nbsp;
+<b class="fc">&nbsp;        return ResponseEntity.ok(rows);</b>
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-12-08 17:10</div>
+</div>
+</body>
+</html>

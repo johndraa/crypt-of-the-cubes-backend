@@ -1,0 +1,108 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > UserProgressRepository</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">survivor.progress</a>
+</div>
+
+<h1>Coverage Summary for Class: UserProgressRepository (survivor.progress)</h1>
+
+<table class="coverageStats">
+
+<tr>
+  <th class="name">Class</th>
+</tr>
+  <tr>
+    <td class="name">UserProgressRepository$MockitoMock$1XxLKquS</td>
+  </tr>
+  <tr>
+    <td class="name">UserProgressRepository$MockitoMock$1XxLKquS$auxiliary$05eMlpoK</td>
+  </tr>
+  <tr>
+    <td class="name">UserProgressRepository$MockitoMock$1XxLKquS$auxiliary$OaYs7HM2</td>
+  </tr>
+<tr>
+  <td class="name"><strong>Total</strong></td>
+</tr>
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package survivor.progress;
+&nbsp;
+&nbsp;import org.springframework.data.jpa.repository.EntityGraph;
+&nbsp;import org.springframework.data.jpa.repository.JpaRepository;
+&nbsp;
+&nbsp;import java.util.List;
+&nbsp;import java.util.Optional;
+&nbsp;
+&nbsp;/**
+&nbsp; * @author John Draa
+&nbsp; */
+&nbsp;
+&nbsp;public interface UserProgressRepository extends JpaRepository&lt;UserProgress, Integer&gt;
+&nbsp;{
+&nbsp;    Optional&lt;UserProgress&gt; findByAccount_Id(Integer accountId);
+&nbsp;    boolean existsByAccount_Id(Integer accountId);
+&nbsp;    // Top N by totalScore
+&nbsp;
+&nbsp;    @EntityGraph(attributePaths = &quot;account&quot;)
+&nbsp;    List&lt;UserProgress&gt; findTop50ByOrderByTotalScoreDesc();
+&nbsp;
+&nbsp;    // For rank calculation (count how many have higher score)
+&nbsp;    @org.springframework.data.jpa.repository.Query(&quot;&quot;&quot;
+&nbsp;  select count(p) from UserProgress p
+&nbsp;  where p.totalScore &gt; (select p2.totalScore from UserProgress p2 where p2.account.id = :accountId)
+&nbsp;&quot;&quot;&quot;)
+&nbsp;    long countWithHigherScore(@org.springframework.data.repository.query.Param(&quot;accountId&quot;) Integer accountId);
+&nbsp;
+&nbsp;    // Deletes the UserProgress row whose foreign key account.id == :accountId
+&nbsp;    void deleteByAccount_Id(Integer accountId);
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-12-08 17:10</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,319 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > ClassChatSocket</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">survivor.chat</a>
+</div>
+
+<h1>Coverage Summary for Class: ClassChatSocket (survivor.chat)</h1>
+
+<table class="coverageStats">
+
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">ClassChatSocket</td>
+<td class="coverageStat">
+  <span class="percent">
+    27.3%
+  </span>
+  <span class="absValue">
+    (3/11)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/22)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    9.6%
+  </span>
+  <span class="absValue">
+    (5/52)
+  </span>
+</td>
+</tr>
+  <tr>
+    <td class="name">ClassChatSocket$Client</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/2)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/2)
+  </span>
+</td>
+  </tr>
+<tr>
+  <td class="name"><strong>Total</strong></td>
+<td class="coverageStat">
+  <span class="percent">
+    23.1%
+  </span>
+  <span class="absValue">
+    (3/13)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/22)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    9.3%
+  </span>
+  <span class="absValue">
+    (5/54)
+  </span>
+</td>
+</tr>
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode"><b class="nc">&nbsp;package survivor.chat;</b>
+&nbsp;
+&nbsp;import jakarta.websocket.*;
+&nbsp;import jakarta.websocket.server.PathParam;
+&nbsp;import jakarta.websocket.server.ServerEndpoint;
+&nbsp;import lombok.extern.slf4j.Slf4j;
+&nbsp;import org.springframework.beans.factory.annotation.Autowired;
+&nbsp;import org.springframework.stereotype.Component;
+&nbsp;import org.springframework.data.domain.PageRequest;
+&nbsp;
+&nbsp;import java.io.IOException;
+&nbsp;import java.util.*;
+&nbsp;import java.util.concurrent.ConcurrentHashMap;
+&nbsp;
+&nbsp;/**
+&nbsp; * Class-style WebSocket chat (no STOMP), scoped per matchId.
+&nbsp; * URL: ws://host:port/classchat/{matchId}/{username}
+&nbsp; */
+<b class="fc">&nbsp;@Slf4j</b>
+&nbsp;@Component
+&nbsp;@ServerEndpoint(value = &quot;/classchat/{matchId}/{username}&quot;)
+<b class="fc">&nbsp;public class ClassChatSocket</b>
+&nbsp;{
+&nbsp;
+&nbsp;    // ---- Wire Spring beans into this static field pattern (as in class demo) ----
+&nbsp;    private static MessageRepository messageRepo;
+&nbsp;
+&nbsp;    @Autowired
+&nbsp;    public void setMessageRepository(MessageRepository repo)
+&nbsp;    {
+<b class="fc">&nbsp;        ClassChatSocket.messageRepo = repo;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    // ---- Session maps ----
+&nbsp;    // Map session -&gt; (matchId, username)
+<b class="fc">&nbsp;    private static final Map&lt;Session, Client&gt; sessionInfo = new ConcurrentHashMap&lt;&gt;();</b>
+&nbsp;    // Map matchId -&gt; username -&gt; session (room-scoped registry)
+<b class="fc">&nbsp;    private static final Map&lt;Long, Map&lt;String, Session&gt;&gt; rooms = new ConcurrentHashMap&lt;&gt;();</b>
+&nbsp;
+<b class="nc">&nbsp;    private record Client(long matchId, String username) {}</b>
+&nbsp;
+&nbsp;    @OnOpen
+&nbsp;    public void onOpen(Session session,
+&nbsp;                       @PathParam(&quot;matchId&quot;) long matchId,
+&nbsp;                       @PathParam(&quot;username&quot;) String username) throws IOException {
+&nbsp;
+<b class="nc">&nbsp;        log.info(&quot;Chat open: match={} user={}&quot;, matchId, username);</b>
+&nbsp;
+<b class="nc">&nbsp;        sessionInfo.put(session, new Client(matchId, username));</b>
+<b class="nc">&nbsp;        rooms.computeIfAbsent(matchId, k -&gt; new ConcurrentHashMap&lt;&gt;()).put(username, session);</b>
+&nbsp;
+&nbsp;        // Send recent history (last 50)
+<b class="nc">&nbsp;        String history = getChatHistory(matchId);</b>
+<b class="nc">&nbsp;        sendToUser(session, history);</b>
+&nbsp;
+&nbsp;        // Broadcast join message to the room
+<b class="nc">&nbsp;        broadcast(matchId, &quot;System: &quot; + username + &quot; joined the lobby chat&quot;);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @OnMessage
+&nbsp;    public void onMessage(Session session, String message)
+&nbsp;    {
+<b class="nc">&nbsp;        Client c = sessionInfo.get(session);</b>
+<b class="nc">&nbsp;        if (c == null) return; // defensive</b>
+&nbsp;
+<b class="nc">&nbsp;        String user = c.username;</b>
+<b class="nc">&nbsp;        long matchId = c.matchId;</b>
+&nbsp;
+<b class="nc">&nbsp;        log.info(&quot;Chat msg: match={} user={} text={}&quot;, matchId, user, message);</b>
+&nbsp;
+&nbsp;        try
+&nbsp;        {
+<b class="nc">&nbsp;            if (message != null &amp;&amp; message.startsWith(&quot;@&quot;))</b>
+&nbsp;            {
+&nbsp;                // DM format: @username message...
+<b class="nc">&nbsp;                String[] parts = message.split(&quot;\\s+&quot;, 2);</b>
+<b class="nc">&nbsp;                if (parts.length &gt;= 2)</b>
+&nbsp;                {
+<b class="nc">&nbsp;                    String dest = parts[0].substring(1); // strip &#39;@&#39;</b>
+<b class="nc">&nbsp;                    String body = parts[1];</b>
+&nbsp;
+&nbsp;                    // send to sender and receiver if receiver exists in the room
+<b class="nc">&nbsp;                    Session destSess = rooms.getOrDefault(matchId, Map.of()).get(dest);</b>
+<b class="nc">&nbsp;                    String framed = &quot;[DM] &quot; + user + &quot;: &quot; + body;</b>
+&nbsp;
+&nbsp;                    // always echo to sender
+<b class="nc">&nbsp;                    sendToUser(session, framed);</b>
+<b class="nc">&nbsp;                    if (destSess != null) sendToUser(destSess, framed);</b>
+&nbsp;
+&nbsp;                    // Save the DM content too (optional—still part of history)
+<b class="nc">&nbsp;                    messageRepo.save(new Message(matchId, user, &quot;[DM-&gt;&quot; + dest + &quot;] &quot; + body));</b>
+&nbsp;                    return;
+&nbsp;                }
+&nbsp;            }
+&nbsp;
+&nbsp;            // Normal broadcast
+<b class="nc">&nbsp;            String framed = user + &quot;: &quot; + message;</b>
+<b class="nc">&nbsp;            broadcast(matchId, framed);</b>
+&nbsp;
+&nbsp;            // Persist
+<b class="nc">&nbsp;            messageRepo.save(new Message(matchId, user, message));</b>
+&nbsp;
+&nbsp;        }
+&nbsp;        catch (Exception e)
+&nbsp;        {
+<b class="nc">&nbsp;            log.warn(&quot;Chat error handling message&quot;, e);</b>
+<b class="nc">&nbsp;            sendToUser(session, &quot;System: error processing message&quot;);</b>
+&nbsp;        }
+&nbsp;    }
+&nbsp;
+&nbsp;    @OnClose
+&nbsp;    public void onClose(Session session, CloseReason reason)
+&nbsp;    {
+<b class="nc">&nbsp;        Client c = sessionInfo.remove(session);</b>
+<b class="nc">&nbsp;        if (c == null) return;</b>
+&nbsp;
+<b class="nc">&nbsp;        rooms.computeIfPresent(c.matchId, (mid, map) -&gt;</b>
+&nbsp;        {
+<b class="nc">&nbsp;            map.remove(c.username);</b>
+<b class="nc">&nbsp;            return map.isEmpty() ? null : map;</b>
+&nbsp;        });
+&nbsp;
+<b class="nc">&nbsp;        log.info(&quot;Chat close: match={} user={} reason={}&quot;, c.matchId, c.username, reason);</b>
+<b class="nc">&nbsp;        broadcast(c.matchId, &quot;System: &quot; + c.username + &quot; left the lobby chat&quot;);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @OnError
+&nbsp;    public void onError(Session session, Throwable t)
+&nbsp;    {
+<b class="nc">&nbsp;        log.warn(&quot;Chat socket error&quot;, t);</b>
+<b class="nc">&nbsp;        if (session != null) sendToUser(session, &quot;System: error&quot;);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    // ---- helpers ----
+&nbsp;    private static void sendToUser(Session sess, String text)
+&nbsp;    {
+&nbsp;        try
+&nbsp;        {
+<b class="nc">&nbsp;            sess.getBasicRemote().sendText(text);</b>
+&nbsp;        }
+&nbsp;        catch (IOException e)
+&nbsp;        {
+<b class="nc">&nbsp;            log.warn(&quot;sendToUser failed&quot;, e);</b>
+&nbsp;        }
+&nbsp;    }
+&nbsp;
+&nbsp;    private static void broadcast(long matchId, String text)
+&nbsp;    {
+<b class="nc">&nbsp;        Map&lt;String, Session&gt; room = rooms.get(matchId);</b>
+<b class="nc">&nbsp;        if (room == null) return;</b>
+<b class="nc">&nbsp;        for (Session s : room.values())</b>
+&nbsp;        {
+<b class="nc">&nbsp;            sendToUser(s, text);</b>
+&nbsp;        }
+&nbsp;    }
+&nbsp;
+&nbsp;    private static String getChatHistory(long matchId)
+&nbsp;    {
+<b class="nc">&nbsp;        var recent = messageRepo.findRecentByMatchId(matchId, PageRequest.of(0, 50));</b>
+<b class="nc">&nbsp;        var sb = new StringBuilder();</b>
+&nbsp;        // we queried newest first; reverse for chronological display
+<b class="nc">&nbsp;        for (int i = recent.size() - 1; i &gt;= 0; i--)</b>
+&nbsp;        {
+<b class="nc">&nbsp;            var m = recent.get(i);</b>
+<b class="nc">&nbsp;            sb.append(m.getUserName()).append(&quot;: &quot;).append(m.getContent()).append(&quot;\n&quot;);</b>
+&nbsp;        }
+<b class="nc">&nbsp;        return sb.toString();</b>
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-12-08 17:10</div>
+</div>
+</body>
+</html>

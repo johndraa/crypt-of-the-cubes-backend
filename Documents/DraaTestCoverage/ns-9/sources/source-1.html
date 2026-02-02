@@ -1,0 +1,180 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > EnemyState</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">survivor.model</a>
+</div>
+
+<h1>Coverage Summary for Class: EnemyState (survivor.model)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">EnemyState</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    94.7%
+  </span>
+  <span class="absValue">
+    (18/19)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    75%
+  </span>
+  <span class="absValue">
+    (3/4)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    95.8%
+  </span>
+  <span class="absValue">
+    (23/24)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package survivor.model;
+&nbsp;
+&nbsp;import survivor.combat.*;
+&nbsp;
+&nbsp;/**
+&nbsp; * @author John Draa
+&nbsp; */
+&nbsp;
+&nbsp;public class EnemyState implements
+&nbsp;        AttackSystem.EnemyView,
+&nbsp;        EnemyAiSystem.EnemyActor {
+&nbsp;
+&nbsp;    private final int id;
+&nbsp;    private Vec2 pos;
+<b class="fc">&nbsp;    private Vec2 vel = new Vec2(0,0);</b>
+&nbsp;    private final Stats stats;
+&nbsp;    private long lastAttackAt;
+&nbsp;    private long lastContactAt;            // &lt;- contact cadence
+&nbsp;    private boolean active;
+&nbsp;    private int hp;
+&nbsp;    private boolean dead;
+&nbsp;
+&nbsp;    private final EnemyType type;
+&nbsp;    private final double radiusPx;
+&nbsp;
+<b class="fc">&nbsp;    public EnemyState(int id, Vec2 spawn, Stats stats, int hp, EnemyType type, double radiusPx) {</b>
+<b class="fc">&nbsp;        this.id = id; this.pos = spawn; this.stats = stats; this.hp = hp;</b>
+<b class="fc">&nbsp;        this.type = type; this.radiusPx = radiusPx;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    // movement/steering
+&nbsp;    @Override public void seek(Vec2 targetPos) {
+<b class="fc">&nbsp;        Vec2 dir = new Vec2(targetPos.x()-pos.x(), targetPos.y()-pos.y()).norm();</b>
+&nbsp;        // Slightly higher base factor so enemies can traverse the larger 2000x2000 map,
+&nbsp;        // but still slower than players on average.
+<b class="fc">&nbsp;        double speed = Math.max(20, stats.moveSpeed()) * 0.8; // was 0.6</b>
+<b class="fc">&nbsp;        this.vel = new Vec2(dir.x()*speed, dir.y()*speed);</b>
+&nbsp;    }
+&nbsp;
+<b class="pc">&nbsp;    public void applyDamage(int dmg){ if (dead) return; hp -= dmg; if (hp&lt;=0){ hp=0; dead=true; } }</b>
+<b class="fc">&nbsp;    public int hp(){ return hp; }</b>
+&nbsp;
+&nbsp;    // ----- EnemyView / EnemyActor / EnemyGate implementations -----
+<b class="fc">&nbsp;    @Override public int id(){ return id; }</b>
+<b class="fc">&nbsp;    @Override public Vec2 pos(){ return pos; }</b>
+<b class="fc">&nbsp;    public void setPos(Vec2 p){ this.pos = p; }</b>
+<b class="fc">&nbsp;    public Vec2 vel(){ return vel; }</b>
+<b class="nc">&nbsp;    public void setVel(Vec2 v){ this.vel = v; }</b>
+&nbsp;
+<b class="fc">&nbsp;    @Override public Stats stats(){ return stats; }</b>
+<b class="fc">&nbsp;    @Override public boolean isDead(){ return dead; }</b>
+&nbsp;
+<b class="fc">&nbsp;    @Override public long lastAttackAt(){ return lastAttackAt; }</b>
+<b class="fc">&nbsp;    @Override public void setLastAttackAt(long t){ lastAttackAt = t; }</b>
+&nbsp;
+<b class="fc">&nbsp;    @Override public long lastContactAt(){ return lastContactAt; }</b>
+<b class="fc">&nbsp;    @Override public void setLastContactAt(long t){ lastContactAt = t; }</b>
+&nbsp;
+<b class="fc">&nbsp;    @Override public boolean active(){ return active; }</b>
+<b class="fc">&nbsp;    @Override public void setActive(boolean v){ active = v; }</b>
+&nbsp;
+<b class="fc">&nbsp;    @Override public EnemyType type(){ return type; }</b>
+<b class="fc">&nbsp;    @Override public double radiusPx(){ return radiusPx; }</b>
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-12-08 17:10</div>
+</div>
+</body>
+</html>

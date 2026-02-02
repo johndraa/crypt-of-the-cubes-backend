@@ -1,0 +1,291 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > CombatResolve</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">survivor.runtime</a>
+</div>
+
+<h1>Coverage Summary for Class: CombatResolve (survivor.runtime)</h1>
+
+<table class="coverageStats">
+
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">CombatResolve</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (3/3)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    67.5%
+  </span>
+  <span class="absValue">
+    (27/40)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    87.8%
+  </span>
+  <span class="absValue">
+    (36/41)
+  </span>
+</td>
+</tr>
+  <tr>
+    <td class="name">CombatResolve$DamageEvent</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (2/2)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (2/2)
+  </span>
+</td>
+  </tr>
+  <tr>
+    <td class="name">CombatResolve$DeathEvent</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (2/2)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (2/2)
+  </span>
+</td>
+  </tr>
+  <tr>
+    <td class="name">CombatResolve$MatchEvents</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (2/2)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (2/2)
+  </span>
+</td>
+  </tr>
+<tr>
+  <td class="name"><strong>Total</strong></td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (9/9)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    67.5%
+  </span>
+  <span class="absValue">
+    (27/40)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    89.4%
+  </span>
+  <span class="absValue">
+    (42/47)
+  </span>
+</td>
+</tr>
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode"><b class="fc">&nbsp;package survivor.runtime;</b>
+&nbsp;
+&nbsp;import survivor.combat.AttackSystem;
+&nbsp;import survivor.model.PlayerState;
+&nbsp;import survivor.model.EnemyState;
+&nbsp;
+&nbsp;import java.util.*;
+&nbsp;
+&nbsp;/**
+&nbsp; * @author John Draa
+&nbsp; */
+&nbsp;
+<b class="fc">&nbsp;public final class CombatResolve</b>
+&nbsp;{
+&nbsp;    private CombatResolve(){}
+&nbsp;
+&nbsp;    public static MatchEvents apply(
+&nbsp;            List&lt;AttackSystem.Hit&gt; playerHits,
+&nbsp;            List&lt;AttackSystem.Hit&gt; enemyHits,
+&nbsp;            Map&lt;Integer, PlayerState&gt; players,
+&nbsp;            List&lt;EnemyState&gt; enemies
+&nbsp;    )
+&nbsp;    {
+<b class="fc">&nbsp;        List&lt;DamageEvent&gt; damages = new ArrayList&lt;&gt;();</b>
+<b class="fc">&nbsp;        List&lt;DeathEvent&gt; deaths = new ArrayList&lt;&gt;();</b>
+&nbsp;
+&nbsp;        // player → enemy
+<b class="fc">&nbsp;        for (var h : playerHits)</b>
+&nbsp;        {
+<b class="fc">&nbsp;            EnemyState e = findEnemy(enemies, h.targetId());</b>
+<b class="pc">&nbsp;            if (e == null || e.isDead()) continue;</b>
+&nbsp;
+<b class="fc">&nbsp;            PlayerState attacker = players.get(h.attackerId());</b>
+<b class="fc">&nbsp;            int appliedDamage = h.damage();</b>
+<b class="pc">&nbsp;            if (attacker != null) {</b>
+<b class="fc">&nbsp;                appliedDamage = (int)Math.round(appliedDamage * attacker.damageMultiplier());</b>
+&nbsp;            }
+&nbsp;
+<b class="pc">&nbsp;            boolean wasAlive = !e.isDead();</b>
+<b class="fc">&nbsp;            e.applyDamage(appliedDamage);</b>
+<b class="fc">&nbsp;            damages.add(new DamageEvent(h.targetId(), &quot;enemy&quot;, appliedDamage));</b>
+&nbsp;            
+&nbsp;            // Award coins, score, and XP for killing enemies
+<b class="pc">&nbsp;            if (wasAlive &amp;&amp; e.isDead()) {</b>
+<b class="fc">&nbsp;                deaths.add(new DeathEvent(h.targetId(), &quot;enemy&quot;));</b>
+&nbsp;                
+<b class="fc">&nbsp;                PlayerState killer = attacker;</b>
+<b class="pc">&nbsp;                if (killer != null &amp;&amp; !killer.isDead()) {</b>
+&nbsp;                    // Score is always awarded
+<b class="pc">&nbsp;                    int scoreReward = switch (e.type()) {</b>
+<b class="fc">&nbsp;                        case BUMPER -&gt; 20;  // Basic enemy</b>
+<b class="nc">&nbsp;                        case SWIPER -&gt; 30;  // Slightly tougher</b>
+<b class="nc">&nbsp;                        default -&gt; 20;</b>
+&nbsp;                    };
+<b class="fc">&nbsp;                    killer.awardScore(scoreReward);</b>
+&nbsp;                    
+&nbsp;                    // Coins are chance-based (not guaranteed)
+<b class="fc">&nbsp;                    double coinDropChance = 0.4; // 40% chance for regular enemies</b>
+<b class="fc">&nbsp;                    if (Math.random() &lt; coinDropChance) {</b>
+<b class="pc">&nbsp;                        int coinReward = switch (e.type()) {</b>
+<b class="fc">&nbsp;                            case BUMPER -&gt; 2;  // Basic enemy</b>
+<b class="nc">&nbsp;                            case SWIPER -&gt; 5;  // Slightly tougher</b>
+<b class="nc">&nbsp;                            default -&gt; 2;</b>
+&nbsp;                        };
+<b class="fc">&nbsp;                        killer.awardCoins(coinReward);</b>
+&nbsp;                    }
+&nbsp;
+&nbsp;                    // Simple XP reward per kill (tune as needed)
+<b class="fc">&nbsp;                    int xpReward = 25;</b>
+<b class="fc">&nbsp;                    killer.addXp(xpReward);</b>
+&nbsp;                }
+&nbsp;            }
+&nbsp;        }
+&nbsp;
+&nbsp;        // enemy → player
+<b class="fc">&nbsp;        for (var h : enemyHits)</b>
+&nbsp;        {
+<b class="fc">&nbsp;            PlayerState p = players.get(h.targetId());</b>
+<b class="pc">&nbsp;            if (p == null || p.isDead()) continue;</b>
+&nbsp;
+&nbsp;            // NEW: invincibility during upgrade choice
+<b class="fc">&nbsp;            if (p.isInvincible()) continue;</b>
+&nbsp;
+<b class="fc">&nbsp;            p.applyDamage(h.damage());</b>
+<b class="fc">&nbsp;            damages.add(new DamageEvent(h.targetId(), &quot;player&quot;, h.damage()));</b>
+<b class="pc">&nbsp;            if (p.isDead()) deaths.add(new DeathEvent(h.targetId(), &quot;player&quot;));</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        return new MatchEvents(damages, deaths);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    private static EnemyState findEnemy(List&lt;EnemyState&gt; enemies, int id)
+&nbsp;    {
+<b class="pc">&nbsp;        for (var e : enemies) if (e.id()==id) return e;</b>
+<b class="nc">&nbsp;        return null;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    // Simple event DTOs (broadcast over /topic/match.{id}.game as needed)
+<b class="fc">&nbsp;    public record DamageEvent(int targetId, String targetType, int damage) {}</b>
+<b class="fc">&nbsp;    public record DeathEvent(int id, String type) {}</b>
+&nbsp;
+<b class="fc">&nbsp;    public record MatchEvents(List&lt;DamageEvent&gt; damages, List&lt;DeathEvent&gt; deaths) {}</b>
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-12-08 17:10</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,124 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > MatchParticipant</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">survivor.match</a>
+</div>
+
+<h1>Coverage Summary for Class: MatchParticipant (survivor.match)</h1>
+
+<table class="coverageStats">
+
+<tr>
+  <th class="name">Class</th>
+</tr>
+  <tr>
+    <td class="name">MatchParticipant$HibernateInstantiator$cuWYQyoi</td>
+  </tr>
+  <tr>
+    <td class="name">MatchParticipant$HibernateInstantiator$DVWyCnbF</td>
+  </tr>
+  <tr>
+    <td class="name">MatchParticipant$HibernateProxy$4lCpX51i</td>
+  </tr>
+  <tr>
+    <td class="name">MatchParticipant$HibernateProxy$g2oFPNVi</td>
+  </tr>
+<tr>
+  <td class="name"><strong>Total</strong></td>
+</tr>
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package survivor.match;
+&nbsp;
+&nbsp;import jakarta.persistence.*;
+&nbsp;import lombok.*;
+&nbsp;import java.time.Instant;
+&nbsp;
+&nbsp;/**
+&nbsp; * @author John Draa
+&nbsp; */
+&nbsp;
+&nbsp;@Entity
+&nbsp;@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+&nbsp;@Table(
+&nbsp;        uniqueConstraints = @UniqueConstraint(columnNames={&quot;match_id&quot;,&quot;account_id&quot;}),
+&nbsp;        indexes = {
+&nbsp;                @Index(name=&quot;idx_mp_match&quot;,   columnList=&quot;match_id&quot;),
+&nbsp;                @Index(name=&quot;idx_mp_account&quot;, columnList=&quot;account_id&quot;)
+&nbsp;        }
+&nbsp;)
+&nbsp;public class MatchParticipant
+&nbsp;{
+&nbsp;    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+&nbsp;    private Long id;
+&nbsp;
+&nbsp;    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name=&quot;match_id&quot;, nullable = false, foreignKey = @ForeignKey(name = &quot;fk_mp_match&quot;))
+&nbsp;    private Match match;
+&nbsp;
+&nbsp;    private Integer accountId;
+&nbsp;
+&nbsp;    // character pick (nullable until lock-in)
+&nbsp;    private Integer characterId;
+&nbsp;    private String  selectedCharacterCode;
+&nbsp;
+&nbsp;    // lobby state
+&nbsp;    @Builder.Default
+&nbsp;    private Boolean ready = false;
+&nbsp;    private Instant joinedAt;
+&nbsp;    private Instant leftAt;
+&nbsp;
+&nbsp;    // results (filled on ENDED)
+&nbsp;    private Integer score;
+&nbsp;    private Integer coinsEarned;
+&nbsp;    private Long    timeAliveMs;
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-12-08 17:10</div>
+</div>
+</body>
+</html>

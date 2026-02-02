@@ -1,0 +1,302 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > PlayerState</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">survivor.model</a>
+</div>
+
+<h1>Coverage Summary for Class: PlayerState (survivor.model)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">PlayerState</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    77.5%
+  </span>
+  <span class="absValue">
+    (31/40)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    60%
+  </span>
+  <span class="absValue">
+    (21/35)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    88.9%
+  </span>
+  <span class="absValue">
+    (72/81)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package survivor.model;
+&nbsp;
+&nbsp;import survivor.combat.*;
+&nbsp;import survivor.shared.AttackStyle; // or wherever your enum lives
+&nbsp;import survivor.runtime.UpgradeGenerator;
+&nbsp;import survivor.runtime.UpgradeType;
+&nbsp;
+&nbsp;import java.util.*;
+&nbsp;
+<b class="fc">&nbsp;public class PlayerState implements</b>
+&nbsp;        AttackSystem.PlayerView,
+&nbsp;        EnemyAiSystem.PlayerActor
+&nbsp;{
+&nbsp;
+&nbsp;    private final int id;
+&nbsp;    private Vec2 pos;
+<b class="fc">&nbsp;    private Vec2 vel = new Vec2(0,0);</b>
+<b class="fc">&nbsp;    private Vec2 lastDir = new Vec2(1,0);</b>
+&nbsp;
+&nbsp;    private float moveX, moveY;
+&nbsp;    private long lastSeq;
+&nbsp;
+&nbsp;    private final Stats stats;
+&nbsp;    private AttackStyle style;
+&nbsp;    private long lastAttackAt;
+&nbsp;    private int hp;
+&nbsp;    private boolean dead;
+&nbsp;
+&nbsp;    // Match progress tracking
+<b class="fc">&nbsp;    private int score = 0;</b>
+<b class="fc">&nbsp;    private int coinsEarned = 0;</b>
+&nbsp;
+&nbsp;    // ---- Level / XP / Upgrades ----
+<b class="fc">&nbsp;    private int xp = 0;</b>
+<b class="fc">&nbsp;    private int level = 1;</b>
+<b class="fc">&nbsp;    private int xpToNext = 100 + level * 50;</b>
+&nbsp;
+<b class="fc">&nbsp;    private boolean choosingUpgrade = false;   // freeze movement inputs when true</b>
+<b class="fc">&nbsp;    private boolean invincible = false;        // ignore damage when true</b>
+&nbsp;
+<b class="fc">&nbsp;    private float damageMultiplier = 1.0f;</b>
+<b class="fc">&nbsp;    private float moveSpeedMultiplier = 1.0f;</b>
+&nbsp;
+&nbsp;    private int maxHp;
+&nbsp;
+&nbsp;    // Current 3 upgrade choices when level-up happens
+<b class="fc">&nbsp;    private List&lt;UpgradeType&gt; currentUpgradeOptions = List.of();</b>
+&nbsp;
+&nbsp;    // ---- Orbit weapon tracking ----
+<b class="fc">&nbsp;    private double orbitAngle = 0.0;  // Current angle of the orbiting orb (in radians)</b>
+<b class="fc">&nbsp;    private final Map&lt;Integer, Long&gt; orbitLastHitTime = new HashMap&lt;&gt;();  // Per-enemy cooldown tracking</b>
+&nbsp;
+&nbsp;    //simple circle hitbox for the player
+<b class="fc">&nbsp;    private final double radiusPx = 12.0;</b>
+&nbsp;
+<b class="fc">&nbsp;    public PlayerState(int id, Vec2 spawn, Stats stats, AttackStyle style, int hp)</b>
+&nbsp;    {
+<b class="fc">&nbsp;        this.id = id; this.pos = spawn; this.stats = stats; this.style = style; this.hp = hp;</b>
+<b class="fc">&nbsp;        this.maxHp = hp;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    public void setMove(float mx, float my, long seq)
+&nbsp;    {
+&nbsp;        // While choosing an upgrade, ignore movement inputs entirely
+<b class="fc">&nbsp;        if (choosingUpgrade) return;</b>
+&nbsp;
+<b class="pc">&nbsp;        if (seq &lt; lastSeq) return;</b>
+<b class="fc">&nbsp;        lastSeq = seq; moveX = mx; moveY = my;</b>
+<b class="pc">&nbsp;        if (Math.abs(mx) &gt; 0.0001 || Math.abs(my) &gt; 0.0001)</b>
+&nbsp;        {
+<b class="fc">&nbsp;            lastDir = new Vec2(mx, my).norm();</b>
+&nbsp;        }
+&nbsp;    }
+&nbsp;
+&nbsp;    // movement helpers used by Physics
+<b class="fc">&nbsp;    public float moveX(){ return moveX; }</b>
+<b class="fc">&nbsp;    public float moveY(){ return moveY; }</b>
+<b class="fc">&nbsp;    public void setPos(Vec2 p){ this.pos = p; }</b>
+<b class="fc">&nbsp;    public void setVel(Vec2 v){ this.vel = v; }</b>
+<b class="nc">&nbsp;    public Vec2 vel(){ return vel; }</b>
+<b class="nc">&nbsp;    public Vec2 lastDir(){ return lastDir; }</b>
+&nbsp;
+<b class="pc">&nbsp;    public void applyDamage(int dmg){ if (dead) return; hp -= dmg; if (hp &lt;= 0){ hp = 0; dead = true; } }</b>
+<b class="fc">&nbsp;    public int hp(){ return hp; }</b>
+&nbsp;
+&nbsp;    // ---- AttackSystem.PlayerView ----
+<b class="fc">&nbsp;    @Override public int id(){ return id; }</b>
+<b class="fc">&nbsp;    @Override public Vec2 pos(){ return pos; }</b>
+<b class="fc">&nbsp;    @Override public Stats stats(){ return stats; }</b>
+<b class="fc">&nbsp;    @Override public AttackStyle effectiveStyle(){ return style; }</b>
+<b class="fc">&nbsp;    @Override public long lastAttackAt(){ return lastAttackAt; }</b>
+<b class="fc">&nbsp;    @Override public void setLastAttackAt(long t){ lastAttackAt = t; }</b>
+<b class="nc">&nbsp;    @Override public Vec2 aimDir(){ return (Math.abs(moveX)&gt;0.0001 || Math.abs(moveY)&gt;0.0001) ? new Vec2(moveX,moveY).norm() : lastDir; }</b>
+<b class="fc">&nbsp;    @Override public boolean isDead(){ return dead; }</b>
+&nbsp;
+&nbsp;    // ---- Orbit weapon methods for AttackSystem.PlayerView ----
+<b class="nc">&nbsp;    @Override public double orbitAngle(){ return orbitAngle; }</b>
+<b class="nc">&nbsp;    @Override public void setOrbitAngle(double angle){ this.orbitAngle = angle; }</b>
+<b class="nc">&nbsp;    @Override public long getOrbitLastHitTime(int enemyId){ return orbitLastHitTime.getOrDefault(enemyId, 0L); }</b>
+<b class="nc">&nbsp;    @Override public void setOrbitLastHitTime(int enemyId, long time){ orbitLastHitTime.put(enemyId, time); }</b>
+&nbsp;
+&nbsp;    // ---- EnemyAiSystem.PlayerActor ----
+<b class="fc">&nbsp;    @Override public double radiusPx(){ return radiusPx; }</b>
+&nbsp;
+&nbsp;    // ---- Match Progress ----
+<b class="nc">&nbsp;    public int getScore() { return score; }</b>
+<b class="nc">&nbsp;    public int getCoinsEarned() { return coinsEarned; }</b>
+&nbsp;    
+&nbsp;    public void awardScore(int points) { 
+<b class="pc">&nbsp;        if (!dead) score += points; </b>
+&nbsp;    }
+&nbsp;    
+&nbsp;    public void awardCoins(int coins) { 
+<b class="pc">&nbsp;        if (!dead) coinsEarned += coins; </b>
+&nbsp;    }
+&nbsp;
+&nbsp;    // ---- Upgrade System (for Demo 4) ----
+&nbsp;    public void setAttackStyle(AttackStyle newStyle) {
+<b class="fc">&nbsp;        this.style = newStyle;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    // ---- NEW: XP / Level helpers ----
+&nbsp;
+<b class="fc">&nbsp;    public int getXp() { return xp; }</b>
+<b class="fc">&nbsp;    public int getLevel() { return level; }</b>
+<b class="fc">&nbsp;    public int getXpToNext() { return xpToNext; }</b>
+<b class="fc">&nbsp;    public boolean isChoosingUpgrade() { return choosingUpgrade; }</b>
+<b class="fc">&nbsp;    public boolean isInvincible() { return invincible; }</b>
+&nbsp;
+<b class="fc">&nbsp;    public float damageMultiplier() { return damageMultiplier; }</b>
+<b class="fc">&nbsp;    public float moveSpeedMultiplier() { return moveSpeedMultiplier; }</b>
+&nbsp;
+<b class="fc">&nbsp;    public List&lt;UpgradeType&gt; getCurrentUpgradeOptions() { return currentUpgradeOptions; }</b>
+&nbsp;
+&nbsp;    public void addXp(int amount) {
+<b class="pc">&nbsp;        if (dead || amount &lt;= 0) return;</b>
+<b class="fc">&nbsp;        xp += amount;</b>
+<b class="fc">&nbsp;        while (xp &gt;= xpToNext) {</b>
+<b class="fc">&nbsp;            xp -= xpToNext;       // keep overflow XP</b>
+<b class="fc">&nbsp;            levelUp();</b>
+&nbsp;        }
+&nbsp;    }
+&nbsp;
+&nbsp;    public void levelUp() {
+<b class="fc">&nbsp;        level++;</b>
+<b class="fc">&nbsp;        xpToNext = 100 + level * 50;</b>
+&nbsp;
+&nbsp;        // Freeze + invincible during upgrade choice
+<b class="fc">&nbsp;        choosingUpgrade = true;</b>
+<b class="fc">&nbsp;        invincible = true;</b>
+<b class="fc">&nbsp;        moveX = 0f;</b>
+<b class="fc">&nbsp;        moveY = 0f;</b>
+&nbsp;
+<b class="fc">&nbsp;        currentUpgradeOptions = UpgradeGenerator.generate3Random();</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    public void applyUpgrade(UpgradeType type) {
+<b class="pc">&nbsp;        if (type == null) return;</b>
+&nbsp;
+<b class="pc">&nbsp;        switch (type) {</b>
+&nbsp;            case DAMAGE_UP -&gt; {
+&nbsp;                // +1% damage each time
+<b class="fc">&nbsp;                damageMultiplier *= 1.01f;</b>
+&nbsp;            }
+&nbsp;            case ATKSPEED_UP -&gt; {
+&nbsp;                // Treat as movement speed upgrade: +0.1 (10%) move speed
+<b class="fc">&nbsp;                moveSpeedMultiplier += 0.1f;</b>
+&nbsp;            }
+&nbsp;            case MAX_HP_UP -&gt; {
+<b class="fc">&nbsp;                int bonus = 10;</b>
+<b class="fc">&nbsp;                maxHp += bonus;</b>
+<b class="fc">&nbsp;                hp = Math.min(maxHp, hp + bonus);</b>
+&nbsp;            }
+&nbsp;            case WEAPON_CONE -&gt; {
+<b class="fc">&nbsp;                setAttackStyle(AttackStyle.CONE);</b>
+&nbsp;            }
+&nbsp;            case WEAPON_ORBIT -&gt; {
+<b class="fc">&nbsp;                setAttackStyle(AttackStyle.ORBIT);</b>
+&nbsp;            }
+&nbsp;        }
+&nbsp;
+&nbsp;        // Done choosing – unfreeze + remove invincibility
+<b class="fc">&nbsp;        choosingUpgrade = false;</b>
+<b class="fc">&nbsp;        invincible = false;</b>
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-12-08 17:10</div>
+</div>
+</body>
+</html>

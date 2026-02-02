@@ -1,0 +1,203 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > CharacterSeedRunner</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">survivor.characters</a>
+</div>
+
+<h1>Coverage Summary for Class: CharacterSeedRunner (survivor.characters)</h1>
+
+<table class="coverageStats">
+
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">CharacterSeedRunner</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (2/2)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    50%
+  </span>
+  <span class="absValue">
+    (1/2)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    61.5%
+  </span>
+  <span class="absValue">
+    (16/26)
+  </span>
+</td>
+</tr>
+  <tr>
+    <td class="name">CharacterSeedRunner$$SpringCGLIB$$0</td>
+  </tr>
+<tr>
+  <td class="name"><strong>Total</strong></td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (2/2)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    50%
+  </span>
+  <span class="absValue">
+    (1/2)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    61.5%
+  </span>
+  <span class="absValue">
+    (16/26)
+  </span>
+</td>
+</tr>
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package survivor.characters;
+&nbsp;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import org.springframework.boot.CommandLineRunner;
+&nbsp;import org.springframework.core.annotation.Order;
+&nbsp;import org.springframework.stereotype.Component;
+&nbsp;import org.springframework.transaction.annotation.Transactional;
+&nbsp;
+&nbsp;import survivor.shared.AttackStyle;
+&nbsp;
+&nbsp;/**
+&nbsp; * @author John Draa
+&nbsp; * Seeds the character catalog on startup.
+&nbsp; * Organized into small helper methods to keep things readable as the catalog grows.
+&nbsp; * Safe to run repeatedly (checks existence by unique code).
+&nbsp; */
+&nbsp;
+&nbsp;@Component
+&nbsp;@Order(0)
+&nbsp;@RequiredArgsConstructor
+&nbsp;public class CharacterSeedRunner implements CommandLineRunner
+&nbsp;{
+&nbsp;
+&nbsp;    private final GameCharacterRepository repo;
+&nbsp;
+&nbsp;    @Override
+&nbsp;    @Transactional
+&nbsp;    public void run(String... args) throws Exception
+&nbsp;    {
+<b class="fc">&nbsp;        upsert(GameCharacter.builder().code(&quot;WANDERER&quot;).name(&quot;Wanderer&quot;).cost(0)</b>
+<b class="fc">&nbsp;                .health(20).moveSpeed(20).attackSpeed(20).damageMult(20).critChance(20).attackStyle(AttackStyle.AOE).rangeUnits(2).build());</b>
+&nbsp;
+<b class="fc">&nbsp;        upsert(GameCharacter.builder().code(&quot;WARRIOR&quot;).name(&quot;Warrior&quot;).cost(100)</b>
+<b class="fc">&nbsp;                .health(45).moveSpeed(35).attackSpeed(25).damageMult(30).critChance(20).attackStyle(AttackStyle.AOE).rangeUnits(2).build());</b>
+&nbsp;
+<b class="fc">&nbsp;        upsert(GameCharacter.builder().code(&quot;ROGUE&quot;).name(&quot;Rogue&quot;).cost(100)</b>
+<b class="fc">&nbsp;                .health(20).moveSpeed(50).attackSpeed(50).damageMult(20).critChance(50).attackStyle(AttackStyle.AOE).rangeUnits(2).build());</b>
+&nbsp;
+<b class="fc">&nbsp;        upsert(GameCharacter.builder().code(&quot;MAGE&quot;).name(&quot;Mage&quot;).cost(100)</b>
+<b class="fc">&nbsp;                        .health(15).moveSpeed(35).attackSpeed(30).damageMult(60).critChance(45).attackStyle(AttackStyle.AOE).rangeUnits(2).build());</b>
+&nbsp;
+<b class="fc">&nbsp;        upsert(GameCharacter.builder().code(&quot;PALADIN&quot;).name(&quot;Paladin&quot;).cost(100)</b>
+<b class="fc">&nbsp;                .health(60).moveSpeed(25).attackSpeed(20).damageMult(25).critChance(10).attackStyle(AttackStyle.AOE).rangeUnits(2).build());</b>
+&nbsp;
+<b class="fc">&nbsp;        upsert(GameCharacter.builder().code(&quot;HUNTER&quot;).name(&quot;Hunter&quot;).cost(100)</b>
+<b class="fc">&nbsp;                .health(30).moveSpeed(40).attackSpeed(35).damageMult(30).critChance(40).attackStyle(AttackStyle.AOE).rangeUnits(2).build());</b>
+&nbsp;
+<b class="fc">&nbsp;        upsert(GameCharacter.builder().code(&quot;WARLOCK&quot;).name(&quot;Warlock&quot;).cost(100)</b>
+<b class="fc">&nbsp;                .health(35).moveSpeed(25).attackSpeed(30).damageMult(45).critChance(20).attackStyle(AttackStyle.AOE).rangeUnits(2).build());</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    private void upsert(GameCharacter spec)
+&nbsp;    {
+<b class="fc">&nbsp;        var existing = repo.findByCodeIgnoreCase(spec.getCode()).orElse(null);</b>
+<b class="pc">&nbsp;        if (existing == null) { repo.save(spec); return; }</b>
+&nbsp;
+&nbsp;        // sync fields you want controlled by seed
+<b class="nc">&nbsp;        existing.setName(spec.getName());</b>
+<b class="nc">&nbsp;        existing.setHealth(spec.getHealth());</b>
+<b class="nc">&nbsp;        existing.setMoveSpeed(spec.getMoveSpeed());</b>
+<b class="nc">&nbsp;        existing.setAttackSpeed(spec.getAttackSpeed());</b>
+<b class="nc">&nbsp;        existing.setDamageMult(spec.getDamageMult());</b>
+<b class="nc">&nbsp;        existing.setCritChance(spec.getCritChance());</b>
+<b class="nc">&nbsp;        existing.setRangeUnits(spec.getRangeUnits());</b>
+<b class="nc">&nbsp;        existing.setAttackStyle(spec.getAttackStyle());</b>
+<b class="nc">&nbsp;        existing.setCost(spec.getCost());</b>
+<b class="nc">&nbsp;        repo.save(existing);</b>
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-12-08 17:10</div>
+</div>
+</body>
+</html>
