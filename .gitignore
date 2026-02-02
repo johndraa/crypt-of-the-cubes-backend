@@ -1,24 +1,73 @@
-# Compiled class file
-*.class
-
-# Log file
+# ---------- General ----------
+.DS_Store
+Thumbs.db
+*.sw?
+*~
+.#*
+*#
+*.tmp
+*.bak
 *.log
+.history/
+.attach_pid*
+secrets.yml
+overridedb.*
+transaction-logs
+dump.rdb
 
-# BlueJ files
-*.ctxt
+# ---------- IDE / Editors ----------
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+*.code-workspace
+.metadata
+.project
+.classpath
+.settings
+.factorypath
+.springBeans
+.recommenders
+.sts4-cache
 
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
+# ---------- Build / Output (all languages) ----------
+**/build/
+**/bin/
+out/
+target/
+build.log
+dependency-reduced-pom.xml
+flattened-pom.xml
+.flattened-pom.xml
+interpolated*.xml
+.gradletasknamecache
 
-# Package Files #
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
+# ---------- Java / Backend ----------
+*.class
+application.log*
+activemq-data
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
+# ---------- Android / Gradle ----------
+# Folders that should not be tracked (recursive)
+**/.gradle/
+**/.cxx/
+**/.externalNativeBuild/
+**/captures/
+**/generated/
+**/intermediates/
+**/outputs/
+**/reports/
+
+# Machine-specific config
+**/local.properties
+
+# Artifacts
+**/*.apk
+**/*.aab
+
+# ---------- Keep Gradle wrapper tracked ----------
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+!gradlew
+!gradlew.bat
