@@ -19,6 +19,3 @@ The backend provides REST APIs and persistent storage for player accounts, chara
 - Match and participant data handling
 - Database-backed game state storage
 - REST endpoints for client-server communication
-
-## Notes
-This repository represents a completed academic project and is maintained as a portfolio example.
